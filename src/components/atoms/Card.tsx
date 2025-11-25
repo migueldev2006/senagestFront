@@ -1,41 +1,27 @@
 import { Card, CardHeader, CardBody } from "@heroui/react";
 
 type Props = {
-  name: string;
-  role: string;
-  img: string;
-  description: string;
+  title: string;
+  img?: string;
+  children?: React.ReactNode;
   className?: string;
-  children?: React.ReactNode; 
 };
 
-export default function CustomUserCard({
-  name,
-  role,
-  img,
-  description,
-  className,
-  children,
-}: Props) {
+export default function CustomCard({ title, img, children, className }: Props) {
   return (
-    <Card className={`max-w-sm p-4 ${className ?? ""}`}>
-      <CardHeader className="gap-3">
-        <img
-          src={img}
-          alt={name}
-          className="rounded-full w-14 h-14 object-cover"
-        />
-
-        <div>
-          <p className="font-semibold">{name}</p>
-          <p className="text-sm text-gray-500">{role}</p>
-        </div>
-      </CardHeader>
+    <Card className={`p-4 ${className ?? ""}`}>
+      {img && (
+        <CardHeader className="p-0">
+          <img
+            src={img}
+            alt={title}
+            className="w-full h-32 object-cover rounded-t-xl"
+          />
+        </CardHeader>
+      )}
 
       <CardBody>
-        <p>{description}</p>
-
-        {/* Si el usuario envía children, lo mostramos */}
+        <h3 className="font-bold text-lg mb-2">{title}</h3>
         {children}
       </CardBody>
     </Card>
