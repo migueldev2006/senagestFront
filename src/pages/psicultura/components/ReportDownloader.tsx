@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
-import { Button, Input } from "@heroui/react"; // Input de fecha
+import { Button, Input } from "@heroui/react";
+import * as XLSX from "xlsx"; // <-- IMPORTANTE
 
 interface Props {
   onClose: () => void;
@@ -10,31 +11,32 @@ export default function ReportDownloader({ onClose }: Props) {
   const [fecha, setFecha] = useState("");
 
   const downloadFakeReport = () => {
-    const contenido = `
-REPORTE DE PISCICULTURA (PRUEBA)
---------------------------------
-Fecha seleccionada: ${fecha || "No especificada"}
+  const data = [
+    ["REPORTE DE PISCICULTURA (PRUEBA)"],
+    ["Este reporte contiene un resumen general del estado de la piscicultura, incluyendo los parámetros principales monitoreados durante las fechas filtradas por el usuario."],
+    [`Fecha seleccionada: ${fecha || "No especificada"}`],
+    [],
+    [
+      "DIA",
+      "FECHA",
+      "HORA",
+      "AÑO",
+      "QUIÉN ENCENDIÓ",
+      "QUIÉN APAGÓ",
+      "TIEMPO ENCENDIDO",
+    ],
+    ["", fecha, "", "2025", "", "", ""],
+  ];
 
-Reporte resumido de los parámetros principales del sistema de piscicultura.
-Incluye información de estanques, oxigenación, alimentación y estado general.
+  const ws = XLSX.utils.aoa_to_sheet(data);
 
--------------------------------------------------------------------------------------------------------------------------
-|DIA  |     FECHA   |   HORA    |   AÑO     |   QUIEN LO ENCENDIO   |   QUIEN LO APAGO  |    TIEMPO QUE DURÓ ENCENDIDO   |
--------------------------------------------------------------------------------------------------------------------------
-|     |             |           |           |                        |                    |                              |    
-`;
+  
+  // CREAR LIBRO
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Reporte");
 
-    const blob = new Blob([contenido], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `reporte_piscicultura_${fecha || "prueba"}.txt`;
-    a.click();
-
-    URL.revokeObjectURL(url);
-  };
-
+  XLSX.writeFile(wb, `reporte_piscicultura_${fecha || "prueba"}.xlsx`);
+};
   return (
     <div className="flex flex-col gap-6 p-4">
       {/* FILTRO POR FECHA */}
@@ -53,12 +55,11 @@ Incluye información de estanques, oxigenación, alimentación y estado general.
 
       {/* CONTENEDOR DESCRIPCIÓN + ICONO */}
       <div className="flex items-center justify-between bg-gray-100 p-4 rounded-xl">
-        {/* DESCRIPCIÓN SIMPLE */}
         <p className="text-gray-700 text-sm flex-1 pr-4">
           <h1 className="font-semibold">REPORTE MONITOREO</h1>
           Este reporte contiene un resumen general del estado de la
           piscicultura, incluyendo los parámetros principales monitoreados
-          durante el día.
+          durante las fechas filtradas por el usuario.
         </p>
 
         {/* ICONO DE DESCARGA */}

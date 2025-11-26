@@ -15,5 +15,5 @@ export const routesConfig : Record<string, JSX.Element> = {
     "roles/home" : <RolesPage/>,
     "usuarios/home" : <UsuariosPage/>,
     "rutas/home" : <RutasPage/>,
-    "psicultura/administrar" : <PisciculturaPage/>,
+    "psicultura/admistrar" : <PisciculturaPage/>,
 }
