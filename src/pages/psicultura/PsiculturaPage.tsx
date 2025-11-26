@@ -7,9 +7,10 @@ import ConfigBrokerForm from "./components/ConfigBrokerForm";
 import ConfigTimerForm from "./components/ConfigTimerForm";
 import CustomModal from "@/components/organisms/CustomModal";
 import { useDisclosure } from "@heroui/modal";
-import { Button } from "@heroui/button";
-import { Switch } from "@heroui/switch";
 import ReportDownloader from "./components/ReportDownloader";
+
+// 🔹 Importa tu hook
+import useProfile from "@/hooks/auth/useProfile";
 
 export default function PisciculturaPage() {
   const [activeForm, setActiveForm] = useState<
@@ -19,6 +20,14 @@ export default function PisciculturaPage() {
   const [isOn, setIsOn] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  // ⭐ Aquí obtenemos el usuario autenticado
+  const { profile, isLoading } = useProfile();
+
+  // Para evitar errores mientras carga
+  const userFullName = profile
+    ? `${profile.primerNombre} ${profile.primerApellido}`
+    : "Cargando...";
 
   return (
     <>
@@ -67,7 +76,7 @@ export default function PisciculturaPage() {
         </CustomButton>
       </div>
 
-      {/* SOLO UN MODAL */}
+      {/* Modal Único */}
       <CustomModal
         title={
           activeForm === "timer"
@@ -83,36 +92,39 @@ export default function PisciculturaPage() {
       >
         {activeForm === "timer" && <ConfigTimerForm onClose={onOpenChange} />}
         {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
+
         {activeForm === "reportes" && (
-          <ReportDownloader onClose={onOpenChange} />
+          <ReportDownloader
+            onClose={onOpenChange}
+            userName={userFullName}   // ⭐ Aquí enviamos el nombre del usuario
+          />
         )}
       </CustomModal>
 
+      {/* Switch encendido ON/OFF */}
       <div className="flex justify-center mt-10">
         <div
           onClick={() => setIsOn(!isOn)}
           className={`
-      relative w-56 h-28 rounded-full cursor-pointer flex items-center select-none
-      transition-colors duration-300
-      ${isOn ? "bg-green-500" : "bg-red-500"}
-    `}
+            relative w-56 h-28 rounded-full cursor-pointer flex items-center select-none
+            transition-colors duration-300
+            ${isOn ? "bg-green-500" : "bg-red-500"}
+          `}
         >
-          {/* Texto ON/OFF que se mueve según el estado */}
           <span
             className={`
-        absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300
-        ${isOn ? "left-6" : "right-6"}
-      `}
+              absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300
+              ${isOn ? "left-6" : "right-6"}
+            `}
           >
             {isOn ? "ON" : "OFF"}
           </span>
 
-          {/* Thumb */}
           <div
             className={`
-        absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10
-        ${isOn ? "translate-x-28" : "translate-x-2"}
-      `}
+              absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10
+              ${isOn ? "translate-x-28" : "translate-x-2"}
+            `}
           />
         </div>
       </div>

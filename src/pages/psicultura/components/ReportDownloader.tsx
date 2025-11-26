@@ -1,49 +1,51 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button, Input } from "@heroui/react";
-import * as XLSX from "xlsx"; // <-- IMPORTANTE
+import * as XLSX from "xlsx";
 
 interface Props {
   onClose: () => void;
+  userName: string; // ⭐ NUEVO: Recibimos el nombre del usuario
 }
 
-export default function ReportDownloader({ onClose }: Props) {
+export default function ReportDownloader({ onClose, userName }: Props) {
   const [fecha, setFecha] = useState("");
 
   const downloadFakeReport = () => {
-  const data = [
-    ["REPORTE DE PISCICULTURA (PRUEBA)"],
-    ["Este reporte contiene un resumen general del estado de la piscicultura, incluyendo los parámetros principales monitoreados durante las fechas filtradas por el usuario."],
-    [`Fecha seleccionada: ${fecha || "No especificada"}`],
-    [],
-    [
-      "DIA",
-      "FECHA",
-      "HORA",
-      "AÑO",
-      "QUIÉN ENCENDIÓ",
-      "QUIÉN APAGÓ",
-      "TIEMPO ENCENDIDO",
-    ],
-    ["", fecha, "", "2025", "", "", ""],
-  ];
+    const data = [
+      ["REPORTE DE PISCICULTURA (PRUEBA)"],
+      [
+        "Este reporte contiene un resumen general del estado de la piscicultura, incluyendo los parámetros principales monitoreados durante las fechas filtradas por el usuario.",
+      ],
+      [`Fecha seleccionada: ${fecha || "No especificada"}`],
+      [],
+      [
+        "DIA",
+        "FECHA",
+        "HORA",
+        "AÑO",
+        "QUIÉN ENCENDIÓ",
+        "QUIÉN APAGÓ",
+        "TIEMPO ENCENDIDO",
+        "TIEMPO APAGADO"
+      ],
 
-  const ws = XLSX.utils.aoa_to_sheet(data);
+      // ⭐ AQUÍ PONEMOS EL NOMBRE DEL USUARIO
+      ["", fecha, "", "2025", userName, userName, ""],
+    ];
 
-  
-  // CREAR LIBRO
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+    const ws = XLSX.utils.aoa_to_sheet(data);
 
-  XLSX.writeFile(wb, `reporte_piscicultura_${fecha || "prueba"}.xlsx`);
-};
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+
+    XLSX.writeFile(wb, `reporte_piscicultura_${fecha || "prueba"}.xlsx`);
+  };
+
   return (
     <div className="flex flex-col gap-6 p-4">
-      {/* FILTRO POR FECHA */}
       <div className="flex flex-col gap-2 p-6">
-        <label className="font-semibold text-sm">
-          Filtrar reporte por fecha:
-        </label>
+        <label className="font-semibold text-sm">Filtrar reporte por fecha:</label>
 
         <Input
           type="date"
@@ -53,16 +55,12 @@ export default function ReportDownloader({ onClose }: Props) {
         />
       </div>
 
-      {/* CONTENEDOR DESCRIPCIÓN + ICONO */}
       <div className="flex items-center justify-between bg-gray-100 p-4 rounded-xl">
         <p className="text-gray-700 text-sm flex-1 pr-4">
           <h1 className="font-semibold">REPORTE MONITOREO</h1>
-          Este reporte contiene un resumen general del estado de la
-          piscicultura, incluyendo los parámetros principales monitoreados
-          durante las fechas filtradas por el usuario.
+          Este reporte contiene un resumen general del estado de la piscicultura.
         </p>
 
-        {/* ICONO DE DESCARGA */}
         <button
           onClick={downloadFakeReport}
           className="p-3 rounded-full hover:bg-gray-200 transition"
@@ -71,7 +69,6 @@ export default function ReportDownloader({ onClose }: Props) {
         </button>
       </div>
 
-      {/* BOTÓN CERRAR */}
       <Button type="button" color="danger" variant="light" onPress={onClose}>
         Cancelar
       </Button>
