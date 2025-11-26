@@ -11,7 +11,7 @@ export default function CustomModal({ isOpen, onOpenChange, title, children }: p
     return (
         <Modal isOpen={isOpen} onOpenChange={onOpenChange} isDismissable={false} scrollBehavior="inside" backdrop="blur" hideCloseButton={true} isKeyboardDismissDisabled={false}>
             <ModalContent>
-                <ModalHeader>{title}</ModalHeader>
+                <ModalHeader className="flex justify-center">{title}</ModalHeader>
                 <ModalBody>
                     {children}
                 </ModalBody>
