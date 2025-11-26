@@ -4,8 +4,8 @@ export default function ConfigTimerForm({ onClose }: { onClose: () => void }) {
     return(
         <>
               <Form>
-                <Input type="time" label="Tiempo Encendido" />
-                <Input type="time" label="Tiempo Apagado" />
+                <Input type="interval" label="Tiempo Encendido" />
+                <Input type="interval" label="Tiempo Apagado" />
         
                 <div className="flex ms-auto gap-4">
                   <Button

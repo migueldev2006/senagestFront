@@ -9,13 +9,14 @@ import CustomModal from "@/components/organisms/CustomModal";
 import { useDisclosure } from "@heroui/modal";
 import { Button } from "@heroui/button";
 import { Switch } from "@heroui/switch";
+import ReportDownloader from "./components/ReportDownloader";
 
 export default function PisciculturaPage() {
   const [activeForm, setActiveForm] = useState<
     "reportes" | "timer" | "broker" | null
   >(null);
 
-    const [isOn, setIsOn] = useState(false);
+  const [isOn, setIsOn] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -38,7 +39,14 @@ export default function PisciculturaPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <CustomButton>Reportes</CustomButton>
+        <CustomButton
+          onPress={() => {
+            setActiveForm("reportes");
+            onOpen();
+          }}
+        >
+          Reportes
+        </CustomButton>
 
         <CustomButton
           onPress={() => {
@@ -66,46 +74,48 @@ export default function PisciculturaPage() {
             ? "Configurar Timer"
             : activeForm === "broker"
               ? "Configuración del Broker"
-              : ""
+              : activeForm === "reportes"
+                ? "Reporte Piscicultura"
+                : ""
         }
         isOpen={isOpen}
         onOpenChange={onOpenChange}
       >
         {activeForm === "timer" && <ConfigTimerForm onClose={onOpenChange} />}
         {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
+        {activeForm === "reportes" && (
+          <ReportDownloader onClose={onOpenChange} />
+        )}
       </CustomModal>
 
-<div className="flex justify-center mt-10">
-  <div
-    onClick={() => setIsOn(!isOn)}
-    className={`
+      <div className="flex justify-center mt-10">
+        <div
+          onClick={() => setIsOn(!isOn)}
+          className={`
       relative w-56 h-28 rounded-full cursor-pointer flex items-center select-none
       transition-colors duration-300
       ${isOn ? "bg-green-500" : "bg-red-500"}
     `}
-  >
-    {/* Texto ON/OFF que se mueve según el estado */}
-    <span
-      className={`
+        >
+          {/* Texto ON/OFF que se mueve según el estado */}
+          <span
+            className={`
         absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300
         ${isOn ? "left-6" : "right-6"}
       `}
-    >
-      {isOn ? "ON" : "OFF"}
-    </span>
+          >
+            {isOn ? "ON" : "OFF"}
+          </span>
 
-    {/* Thumb */}
-    <div
-      className={`
+          {/* Thumb */}
+          <div
+            className={`
         absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10
         ${isOn ? "translate-x-28" : "translate-x-2"}
       `}
-    />
-  </div>
-</div>
-
-
-
+          />
+        </div>
+      </div>
     </>
   );
 }
