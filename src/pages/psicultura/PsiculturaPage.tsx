@@ -9,6 +9,7 @@ import CustomModal from "@/components/organisms/CustomModal";
 import { useDisclosure } from "@heroui/modal";
 import ReportDownloader from "./components/ReportDownloader";
 import { usePiscicultura } from "@/hooks/default/usePsicultura";
+import useProfile from "@/hooks/auth/useProfile";
 
 export default function PisciculturaPage() {
   const [activeForm, setActiveForm] = useState<
@@ -16,6 +17,7 @@ export default function PisciculturaPage() {
   >(null);
 
   const [isOn, setIsOn] = useState(false);
+   const { profile, isLoading } = useProfile();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
@@ -35,7 +37,9 @@ useEffect(() => {
   fetchEstado()
 }, [])
 
-
+  const userFullName = profile
+    ? `${profile.primerNombre} ${profile.primerApellido}`
+    : "Cargando...";
 
   return (
     <>
@@ -84,7 +88,7 @@ useEffect(() => {
         </CustomButton>
       </div>
 
-      {/* SOLO UN MODAL */}
+      {/* Modal Único */}
       <CustomModal
         title={
           activeForm === "timer"
@@ -100,8 +104,12 @@ useEffect(() => {
       >
         {activeForm === "timer" && <ConfigTimerForm onClose={onOpenChange} />}
         {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
+
         {activeForm === "reportes" && (
-          <ReportDownloader onClose={onOpenChange} />
+          <ReportDownloader
+            onClose={onOpenChange}
+            userName={userFullName}   // ⭐ Aquí enviamos el nombre del usuario
+          />
         )}
       </CustomModal>
 
