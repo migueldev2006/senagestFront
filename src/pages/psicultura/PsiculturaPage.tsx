@@ -17,17 +17,18 @@ export default function PisciculturaPage() {
   >(null);
 
   const [isOn, setIsOn] = useState(false);
-   const { profile, isLoading } = useProfile();
+   const { profile,  } = useProfile();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
 const { cambiarEstado, obtenerEstado } = usePiscicultura()
 
 const toggle = async () => {
-  const nuevoEstado = !isOn
-  await cambiarEstado(1, nuevoEstado)
-  setIsOn(nuevoEstado) // actualizar frontend inmediatamente
-}
+  const nuevoEstado = !isOn;
+  const estadoBackend = await cambiarEstado(1, nuevoEstado, true); 
+  setIsOn(estadoBackend);
+};
+
 
 useEffect(() => {
   const fetchEstado = async () => {
