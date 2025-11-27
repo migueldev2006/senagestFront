@@ -10,6 +10,9 @@ import { useDisclosure } from "@heroui/modal";
 import ReportDownloader from "./components/ReportDownloader";
 import { usePiscicultura } from "@/hooks/default/usePsicultura";
 import useProfile from "@/hooks/auth/useProfile";
+import PisciculturaTable from "../psicultura/components/PsiculturaTable";
+import { axiosAPI } from "@/api/axiosAPI";
+
 
 export default function PisciculturaPage() {
   const [activeForm, setActiveForm] = useState<
@@ -17,18 +20,37 @@ export default function PisciculturaPage() {
   >(null);
 
   const [isOn, setIsOn] = useState(false);
-   const { profile,  } = useProfile();
+   const { profile, isLoading } = useProfile();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
 const { cambiarEstado, obtenerEstado } = usePiscicultura()
 
-const toggle = async () => {
-  const nuevoEstado = !isOn;
-  const estadoBackend = await cambiarEstado(1, nuevoEstado, true); 
-  setIsOn(estadoBackend);
+const [registrosTabla, setRegistrosTabla] = useState<any[]>([]);
+
+const cargarTodosLosRegistros = async () => {
+  try {
+    const { data } = await axiosAPI.get("/psicultura/info");
+    setRegistrosTabla(data);
+  } catch (error) {
+    console.error("Error cargando registros:", error);
+  }
 };
 
+useEffect(() => {
+  cargarTodosLosRegistros();
+}, []);
+
+
+useEffect(() => {
+  cargarTodosLosRegistros();
+}, []);
+
+const toggle = async () => {
+  const nuevoEstado = !isOn
+  await cambiarEstado(1, nuevoEstado)
+  setIsOn(nuevoEstado) // actualizar frontend inmediatamente
+}
 
 useEffect(() => {
   const fetchEstado = async () => {
@@ -109,7 +131,7 @@ useEffect(() => {
         {activeForm === "reportes" && (
           <ReportDownloader
             onClose={onOpenChange}
-            userName={userFullName}   // ⭐ Aquí enviamos el nombre del usuario
+            userName={userFullName}   
           />
         )}
       </CustomModal>
@@ -125,6 +147,12 @@ useEffect(() => {
           <div className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${isOn ? "translate-x-28" : "translate-x-2"}`} />
         </div>
       </div>
+      <PisciculturaTable registros={registrosTabla} />
+
+
+      
     </>
+
+    
   );
 }
