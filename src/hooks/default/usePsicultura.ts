@@ -18,9 +18,9 @@ export function usePiscicultura() {
     return res.data
   }
 
-  const cambiarEstado = async (id: number, estado: boolean) => {
+const cambiarEstado = async (id: number, estado: boolean, manual = true) => {
     setLoading(true)
-    const res = await axiosAPI.patch(`/psicultura/estado/${id}`, { estado })
+    const res = await axiosAPI.patch(`/psicultura/estado/${id}`, { estado, manual })
     setLoading(false)
     return res.data
   }
