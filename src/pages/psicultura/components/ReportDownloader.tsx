@@ -13,6 +13,8 @@ interface Props {
 
 export default function ReportDownloader({ onClose, userName }: Props) {
   const [fecha, setFecha] = useState("");
+  const [año, setAño] = useState<number | null>(null);
+
   const { obtenerTimer, timerActual } = usePiscicultura();
   const [tiempoEncendido, setTiempoEncendido] = useState("");
   const [tiempoApagado, setTiempoApagado] = useState("");
@@ -87,8 +89,8 @@ useEffect(() => {
         dia, 
         fecha,
         horaCreacion,
-        setAño,
-        userName,
+        año ?? "N/A",        
+         userName,
         userName,
         tiempoEncendido,
         tiempoApagado,
@@ -133,7 +135,5 @@ useEffect(() => {
     </div>
   );
 }
-function setAño(año: number) {
-  throw new Error("Function not implemented.");
-}
+
 
