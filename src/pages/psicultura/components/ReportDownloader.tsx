@@ -3,6 +3,8 @@ import { Download } from "lucide-react";
 import { Button, Input } from "@heroui/react";
 import * as XLSX from "xlsx";
 import { usePiscicultura } from "@/hooks/default/usePsicultura";
+import { axiosAPI } from '@/api/axiosAPI'
+
 
 interface Props {
   onClose: () => void;
@@ -14,18 +16,53 @@ export default function ReportDownloader({ onClose, userName }: Props) {
   const { obtenerTimer, timerActual } = usePiscicultura();
   const [tiempoEncendido, setTiempoEncendido] = useState("");
   const [tiempoApagado, setTiempoApagado] = useState("");
-
-  // Traer los tiempos del backend al montar el componente
+const [horaCreacion, setHoraCreacion] = useState("");  
 const dia = fecha ? fecha.split("-")[2] : "";
 
-  useEffect(() => {
-    const fetchTimer = async () => {
-      const data = await obtenerTimer(1); // ID del timer
-      setTiempoEncendido(data.TiempoEncendido);
-      setTiempoApagado(data.tiempoApagado);
-    };
-    fetchTimer();
-  }, []);
+
+const fetchTimer = async () => {
+  try {
+    const { data } = await axiosAPI.get("/psicultura/info");
+    if (data && data.length > 0) {
+      const timer = data[0];
+
+      setTiempoEncendido(timer.TiempoEncendido);
+      setTiempoApagado(timer.tiempoApagado);
+
+      const fecha = new Date(timer.fechaCreacion);
+      const hora = fecha.toLocaleTimeString("es-CO", { hour12: true });
+      const año = fecha.getFullYear(); // <-- aquí obtienes el año
+
+      setHoraCreacion(hora);
+      setAño(año); // necesitas un estado llamado setAño
+    }
+  } catch (error) {
+    console.error("Error al obtener el timer:", error);
+  }
+};
+
+
+
+useEffect(() => {
+  fetchTimer();
+}, []);
+
+
+useEffect(() => {
+  const fetchTimer = async () => {
+    const data = await obtenerTimer(1);
+    setTiempoEncendido(data.TiempoEncendido);
+    setTiempoApagado(data.tiempoApagado);
+
+    if (data.fechaCreacion) {
+      const fecha = new Date(data.fechaCreacion);
+      const hora = fecha.toLocaleTimeString("es-CO", { hour12: false });
+      setHoraCreacion(hora);
+    }
+  };
+  fetchTimer();
+}, []);
+
 
   // Función para generar el Excel
   const downloadReport = () => {
@@ -49,8 +86,8 @@ const dia = fecha ? fecha.split("-")[2] : "";
       [
         dia, 
         fecha,
-        "",
-        "2025",
+        horaCreacion,
+        setAño,
         userName,
         userName,
         tiempoEncendido,
@@ -96,3 +133,7 @@ const dia = fecha ? fecha.split("-")[2] : "";
     </div>
   );
 }
+function setAño(año: number) {
+  throw new Error("Function not implemented.");
+}
+
