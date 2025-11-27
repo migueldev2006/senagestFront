@@ -33,10 +33,10 @@ const fetchTimer = async () => {
 
       const fecha = new Date(timer.fechaCreacion);
       const hora = fecha.toLocaleTimeString("es-CO", { hour12: true });
-      const año = fecha.getFullYear(); // <-- aquí obtienes el año
+      const año = fecha.getFullYear(); 
 
       setHoraCreacion(hora);
-      setAño(año); // necesitas un estado llamado setAño
+      setAño(año); 
     }
   } catch (error) {
     console.error("Error al obtener el timer:", error);
@@ -66,7 +66,6 @@ useEffect(() => {
 }, []);
 
 
-  // Función para generar el Excel
   const downloadReport = () => {
     const data = [
       ["REPORTE DE PISCICULTURA (PRUEBA)"],
