@@ -1,17 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import { Button, Input } from "@heroui/react";
 import * as XLSX from "xlsx";
+import { usePiscicultura } from "@/hooks/default/usePsicultura";
 
 interface Props {
   onClose: () => void;
-  userName: string; // ⭐ NUEVO: Recibimos el nombre del usuario
+  userName: string;
 }
 
 export default function ReportDownloader({ onClose, userName }: Props) {
   const [fecha, setFecha] = useState("");
+  const { obtenerTimer, timerActual } = usePiscicultura();
+  const [tiempoEncendido, setTiempoEncendido] = useState("");
+  const [tiempoApagado, setTiempoApagado] = useState("");
 
-  const downloadFakeReport = () => {
+  // Traer los tiempos del backend al montar el componente
+const dia = fecha ? fecha.split("-")[2] : "";
+
+  useEffect(() => {
+    const fetchTimer = async () => {
+      const data = await obtenerTimer(1); // ID del timer
+      setTiempoEncendido(data.TiempoEncendido);
+      setTiempoApagado(data.tiempoApagado);
+    };
+    fetchTimer();
+  }, []);
+
+  // Función para generar el Excel
+  const downloadReport = () => {
     const data = [
       ["REPORTE DE PISCICULTURA (PRUEBA)"],
       [
@@ -27,18 +44,23 @@ export default function ReportDownloader({ onClose, userName }: Props) {
         "QUIÉN ENCENDIÓ",
         "QUIÉN APAGÓ",
         "TIEMPO ENCENDIDO",
-        "TIEMPO APAGADO"
+        "TIEMPO APAGADO",
       ],
-
-      // ⭐ AQUÍ PONEMOS EL NOMBRE DEL USUARIO
-      ["", fecha, "", "2025", userName, userName, ""],
+      [
+        dia, 
+        fecha,
+        "",
+        "2025",
+        userName,
+        userName,
+        tiempoEncendido,
+        tiempoApagado,
+      ],
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(data);
-
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reporte");
-
     XLSX.writeFile(wb, `reporte_piscicultura_${fecha || "prueba"}.xlsx`);
   };
 
@@ -46,7 +68,6 @@ export default function ReportDownloader({ onClose, userName }: Props) {
     <div className="flex flex-col gap-6 p-4">
       <div className="flex flex-col gap-2 p-6">
         <label className="font-semibold text-sm">Filtrar reporte por fecha:</label>
-
         <Input
           type="date"
           value={fecha}
@@ -62,7 +83,7 @@ export default function ReportDownloader({ onClose, userName }: Props) {
         </p>
 
         <button
-          onClick={downloadFakeReport}
+          onClick={downloadReport}
           className="p-3 rounded-full hover:bg-gray-200 transition"
         >
           <Download size={40} className="text-blue-600" />

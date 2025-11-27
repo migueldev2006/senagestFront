@@ -32,5 +32,18 @@ export function usePiscicultura() {
     return res.data.estado
   }
 
-  return { validarBroker, actualizarTimer, cambiarEstado, obtenerEstado, loading }
+
+  // traer información del timer 
+  const [timerActual, setTimerActual] = useState<{ TiempoEncendido: string, tiempoApagado: string } | null>(null);
+
+const obtenerTimer = async (id: number) => {
+  setLoading(true);
+  const res = await axiosAPI.get(`/psicultura/timer/${id}`);
+  setLoading(false);
+  setTimerActual(res.data); // se asume que el backend devuelve {TiempoEncendido, tiempoApagado}
+  return res.data;
+};
+
+
+  return { validarBroker, actualizarTimer, cambiarEstado, obtenerEstado,obtenerTimer,timerActual, loading }
 }
