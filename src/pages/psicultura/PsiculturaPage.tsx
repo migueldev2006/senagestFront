@@ -24,19 +24,34 @@ export default function PisciculturaPage() {
 const { cambiarEstado, obtenerEstado } = usePiscicultura()
 
 const toggle = async () => {
-  const nuevoEstado = !isOn;
-  const estadoBackend = await cambiarEstado(1, nuevoEstado, true); 
-  setIsOn(estadoBackend);
-};
+  const nuevoEstado = !isOn
+  const estadoBackend = await cambiarEstado(1, nuevoEstado, true)
+  setIsOn(estadoBackend.estado)
+}
+
 
 
 useEffect(() => {
   const fetchEstado = async () => {
-    const e = await obtenerEstado(1)
-    setIsOn(e)
-  }
-  fetchEstado()
-}, [])
+    const e = await obtenerEstado(1);
+    setIsOn(e.estado);
+  };
+  fetchEstado();
+}, []);
+
+useEffect(() => {
+  const interval = setInterval(async () => {
+    try {
+      const e = await obtenerEstado(1);
+      setIsOn(e.estado);
+    } catch (err) {
+      console.error("Error refrescando estado", err);
+    }
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, []);
+
 
   const userFullName = profile
     ? `${profile.primerNombre} ${profile.primerApellido}`

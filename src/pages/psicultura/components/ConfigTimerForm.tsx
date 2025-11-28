@@ -6,13 +6,13 @@ import { addToast } from "@heroui/toast"
 
 export default function ConfigTimerForm({ onClose }: { onClose: () => void }) {
   const { actualizarTimer, loading } = usePiscicultura();
-  const [form, setForm] = useState({ TiempoEncendido: "", tiempoApagado: "" });
-  const [errors, setErrors] = useState({ TiempoEncendido: "", tiempoApagado: "" })
+  const [form, setForm] = useState({ tiempoEncendido: "", tiempoApagado: "" });
+  const [errors, setErrors] = useState({ tiempoEncendido: "", tiempoApagado: "" })
 const regexInterval = /^([0-9]{2}):([0-5][0-9]):([0-5][0-9])$/
 
   const validate = () => {
     const newErrors = {
-      TiempoEncendido: regexInterval.test(form.TiempoEncendido) ? "" : "Formato HH:MM:SS",
+      tiempoEncendido: regexInterval.test(form.tiempoEncendido) ? "" : "Formato HH:MM:SS",
       tiempoApagado: regexInterval.test(form.tiempoApagado) ? "" : "Formato HH:MM:SS"
     }
     setErrors(newErrors)
@@ -53,14 +53,14 @@ const handleSubmit = async (e:any) => {
       <Input
   label="Tiempo Encendido (HH:MM:SS)"
   placeholder="00:10:00"
-  isInvalid={!!errors.TiempoEncendido}
-  errorMessage={errors.TiempoEncendido}
+  isInvalid={!!errors.tiempoEncendido}
+  errorMessage={errors.tiempoEncendido}
   onChange={(e) => {
     const value = e.target.value
-    setForm({ ...form, TiempoEncendido: value })
+    setForm({ ...form, tiempoEncendido: value })
     setErrors({
       ...errors,
-      TiempoEncendido: regexInterval.test(value) ? "" : "Formato HH:MM:SS"
+      tiempoEncendido: regexInterval.test(value) ? "" : "Formato HH:MM:SS"
     })
   }}
 />
