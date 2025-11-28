@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import { Button, Input } from "@heroui/react";
 import * as XLSX from "xlsx";
-import { usePiscicultura } from "@/hooks/default/usePsicultura";
 import { axiosAPI } from "@/api/axiosAPI";
 
 interface Props {
@@ -12,62 +11,63 @@ interface Props {
 
 export default function ReportDownloader({ onClose, userName }: Props) {
   const [fecha, setFecha] = useState("");
-  const [año, setAño] = useState<number | null>(null);
 
-  const { obtenerTimer, timerActual } = usePiscicultura();
-  const [tiempoEncendido, setTiempoEncendido] = useState("");
-  const [tiempoApagado, setTiempoApagado] = useState("");
-  const [horaCreacion, setHoraCreacion] = useState("");
-  const dia = fecha ? fecha.split("-")[2] : "";
+  // Lista de reportes filtrados por día
+  const [reportes, setReportes] = useState<any[]>([]);
 
-  const fetchTimer = async () => {
+  // ------------------ OBTENER REPORTES DEL DÍA ------------------
+  const fetchReportesDelDia = async () => {
+    if (!fecha) return;
+
     try {
       const { data } = await axiosAPI.get("/psicultura/info");
-      if (data && data.length > 0) {
-        const timer = data[0];
 
-        setTiempoEncendido(timer.TiempoEncendido);
-        setTiempoApagado(timer.tiempoApagado);
+      // Filtrar por la fecha seleccionada (día exacto)
+      const registrosFiltrados = data.filter((r: any) => {
+        const f = new Date(r.fechaCreacion);
+        const fechaDB = f.toISOString().split("T")[0]; // yyyy-mm-dd
+        return fechaDB === fecha; // compara exacto contra el input
+      });
 
-        const fecha = new Date(timer.fechaCreacion);
-        const hora = fecha.toLocaleTimeString("es-CO", { hour12: true });
-        const año = fecha.getFullYear(); // <-- aquí obtienes el año
-
-        setHoraCreacion(hora);
-        setAño(año); // necesitas un estado llamado setAño
-      }
+      setReportes(registrosFiltrados);
     } catch (error) {
-      console.error("Error al obtener el timer:", error);
+      console.error("Error al obtener registros:", error);
     }
   };
 
   useEffect(() => {
-    fetchTimer();
-  }, []);
+    fetchReportesDelDia();
+  }, [fecha]);
 
-  useEffect(() => {
-    const fetchTimer = async () => {
-      const data = await obtenerTimer(1);
-      setTiempoEncendido(data.TiempoEncendido);
-      setTiempoApagado(data.tiempoApagado);
-
-      if (data.fechaCreacion) {
-        const fecha = new Date(data.fechaCreacion);
-        const hora = fecha.toLocaleTimeString("es-CO", { hour12: false });
-        setHoraCreacion(hora);
-      }
-    };
-    fetchTimer();
-  }, []);
-
-  // Función para generar el Excel
+  // ------------------ GENERAR EXCEL ------------------
   const downloadReport = () => {
+    if (reportes.length === 0) {
+      alert("No hay registros para esta fecha.");
+      return;
+    }
+
+const filas = reportes.map((r) => {
+  const fechaOriginal = r.fechaCreacion.split("T")[0]; // yyyy-mm-dd
+  const diaOriginal = fechaOriginal.split("-")[2];     // dd
+
+  const f = new Date(r.fechaCreacion);
+
+  return [
+    diaOriginal,              // día REAL del registro
+    fechaOriginal,            // fecha REAL sin modificar
+    f.toLocaleTimeString("es-CO", { hour12: true }), // hora
+    f.getFullYear(),          // año
+    r.encendidoPor || userName || "N/A",
+    r.apagadoPor || userName || "N/A",
+    r.TiempoEncendido,
+    r.tiempoApagado,
+  ];
+});
+
+
     const data = [
-      ["REPORTE DE PISCICULTURA (PRUEBA)"],
-      [
-        "Este reporte contiene un resumen general del estado de la piscicultura, incluyendo los parámetros principales monitoreados durante las fechas filtradas por el usuario.",
-      ],
-      [`Fecha seleccionada: ${fecha || "No especificada"}`],
+      ["REPORTE DE PISCICULTURA"],
+      [`Fecha seleccionada: ${fecha}`],
       [],
       [
         "DIA",
@@ -79,22 +79,14 @@ export default function ReportDownloader({ onClose, userName }: Props) {
         "TIEMPO ENCENDIDO",
         "TIEMPO APAGADO",
       ],
-      [
-        dia,
-        fecha,
-        horaCreacion,
-        año ?? "N/A",        
-         userName,
-        userName,
-        tiempoEncendido,
-        tiempoApagado,
-      ],
+      ...filas, // <<--- AQUI SE COLOCAN TODAS LAS FILAS DEL DÍA
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reporte");
-    XLSX.writeFile(wb, `reporte_piscicultura_${fecha || "prueba"}.xlsx`);
+
+    XLSX.writeFile(wb, `reporte_piscicultura_${fecha}.xlsx`);
   };
 
   return (
@@ -114,8 +106,7 @@ export default function ReportDownloader({ onClose, userName }: Props) {
       <div className="flex items-center justify-between bg-gray-100 p-4 rounded-xl">
         <p className="text-gray-700 text-sm flex-1 pr-4">
           <h1 className="font-semibold">REPORTE MONITOREO</h1>
-          Este reporte contiene un resumen general del estado de la
-          piscicultura.
+          Este reporte contiene un resumen general del estado de la piscicultura.
         </p>
 
         <button
@@ -132,5 +123,3 @@ export default function ReportDownloader({ onClose, userName }: Props) {
     </div>
   );
 }
-
-
