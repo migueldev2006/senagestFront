@@ -2,9 +2,11 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from 
 
 interface Props {
   registros: any[];
+    userName: string;
+
 }
 
-export default function PisciculturaTable({ registros }: Props) {
+export default function PisciculturaTable({ registros,userName }: Props) {
   return (
     <div className="mt-9">
       <h2 className="text-center font-bold mb-4">Historial Completo</h2>
@@ -35,8 +37,8 @@ export default function PisciculturaTable({ registros }: Props) {
                   })}
                 </TableCell>
                 <TableCell>{fecha.getFullYear()}</TableCell>
-                <TableCell>{r.encendidoPor || "N/A"}</TableCell>
-                <TableCell>{r.apagadoPor || "N/A"}</TableCell>
+                <TableCell>{r.encendidoPor || userName }</TableCell>
+                <TableCell>{r.apagadoPor || userName}</TableCell>
                 <TableCell>{r.TiempoEncendido}</TableCell>
                 <TableCell>{r.tiempoApagado}</TableCell>
               </TableRow>

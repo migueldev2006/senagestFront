@@ -12,21 +12,18 @@ interface Props {
 export default function ReportDownloader({ onClose, userName }: Props) {
   const [fecha, setFecha] = useState("");
 
-  // Lista de reportes filtrados por día
   const [reportes, setReportes] = useState<any[]>([]);
 
-  // ------------------ OBTENER REPORTES DEL DÍA ------------------
   const fetchReportesDelDia = async () => {
     if (!fecha) return;
 
     try {
       const { data } = await axiosAPI.get("/psicultura/info");
 
-      // Filtrar por la fecha seleccionada (día exacto)
       const registrosFiltrados = data.filter((r: any) => {
         const f = new Date(r.fechaCreacion);
-        const fechaDB = f.toISOString().split("T")[0]; // yyyy-mm-dd
-        return fechaDB === fecha; // compara exacto contra el input
+        const fechaDB = f.toISOString().split("T")[0]; 
+        return fechaDB === fecha; 
       });
 
       setReportes(registrosFiltrados);
@@ -39,7 +36,6 @@ export default function ReportDownloader({ onClose, userName }: Props) {
     fetchReportesDelDia();
   }, [fecha]);
 
-  // ------------------ GENERAR EXCEL ------------------
   const downloadReport = () => {
     if (reportes.length === 0) {
       alert("No hay registros para esta fecha.");
@@ -47,16 +43,16 @@ export default function ReportDownloader({ onClose, userName }: Props) {
     }
 
 const filas = reportes.map((r) => {
-  const fechaOriginal = r.fechaCreacion.split("T")[0]; // yyyy-mm-dd
-  const diaOriginal = fechaOriginal.split("-")[2];     // dd
+  const fechaOriginal = r.fechaCreacion.split("T")[0]; 
+  const diaOriginal = fechaOriginal.split("-")[2];     
 
   const f = new Date(r.fechaCreacion);
 
   return [
-    diaOriginal,              // día REAL del registro
-    fechaOriginal,            // fecha REAL sin modificar
-    f.toLocaleTimeString("es-CO", { hour12: true }), // hora
-    f.getFullYear(),          // año
+    diaOriginal,              
+    fechaOriginal,          
+    f.toLocaleTimeString("es-CO", { hour12: true }), 
+    f.getFullYear(),          
     r.encendidoPor || userName || "N/A",
     r.apagadoPor || userName || "N/A",
     r.TiempoEncendido,
@@ -79,7 +75,7 @@ const filas = reportes.map((r) => {
         "TIEMPO ENCENDIDO",
         "TIEMPO APAGADO",
       ],
-      ...filas, // <<--- AQUI SE COLOCAN TODAS LAS FILAS DEL DÍA
+      ...filas, 
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(data);

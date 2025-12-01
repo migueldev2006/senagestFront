@@ -47,10 +47,16 @@ useEffect(() => {
 }, []);
 
 const toggle = async () => {
-  const nuevoEstado = !isOn
-  await cambiarEstado(1, nuevoEstado)
-  setIsOn(nuevoEstado) // actualizar frontend inmediatamente
-}
+  const nuevoEstado = !isOn;
+  try {
+    await cambiarEstado(1, nuevoEstado);
+    setIsOn(nuevoEstado); // actualizar frontend inmediatamente
+    // recargar registros para que la tabla refleje el nuevo registro
+    await cargarTodosLosRegistros();
+  } catch (error) {
+    console.error("Error al cambiar estado:", error);
+  }
+};
 
 useEffect(() => {
   const fetchEstado = async () => {
@@ -125,7 +131,14 @@ useEffect(() => {
         isOpen={isOpen}
         onOpenChange={onOpenChange}
       >
-        {activeForm === "timer" && <ConfigTimerForm onClose={onOpenChange} />}
+        {activeForm === "timer" && (
+          <ConfigTimerForm
+            onClose={async () => {
+              onOpenChange();
+              await cargarTodosLosRegistros();
+            }}
+          />
+        )}
         {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
 
         {activeForm === "reportes" && (
@@ -147,7 +160,7 @@ useEffect(() => {
           <div className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${isOn ? "translate-x-28" : "translate-x-2"}`} />
         </div>
       </div>
-      <PisciculturaTable registros={registrosTabla} />
+      <PisciculturaTable registros={registrosTabla} userName={userFullName} />
 
 
       
