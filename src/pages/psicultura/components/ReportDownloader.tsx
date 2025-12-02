@@ -61,11 +61,6 @@ const filas = reportes.map((r) => {
     r.apagadoPor || userName || "N/A",
     r.tiempoEncendido,
     r.tiempoApagado,
-    r.tiempoMs,
-    r.estado,
-    r.modo,
-    r.inicio,
-    r.fin,
   ];
 });
 
@@ -83,11 +78,6 @@ const filas = reportes.map((r) => {
         "QUIÉN APAGÓ",
         "TIEMPO ENCENDIDO",
         "TIEMPO APAGADO",
-        "TIEMPO MANUAL",
-        "ESTADO",
-        "MODO",
-        "INICIO",
-        "FIN",
       ],
       ...filas, // <<--- AQUI SE COLOCAN TODAS LAS FILAS DEL DÍA
     ];

@@ -76,14 +76,12 @@ export default function PisciculturaPage() {
       }
 
       if (res.estado !== undefined) {
-        setIsOn(Boolean(res.estado)); // estado confirmado por backend
+        setIsOn(Boolean(res.estado)); 
       }
 
-      // 🔓 desbloquear después de 2s
+
       setTimeout(() => setBloqueado(false), 3000);
 
-      // ❌ NO LLAMES cargarDatos() aquí — pisará el estado recién cambiado
-      // await cargarDatos();
     } catch (err) {
       console.error("❌ Error en toggle:", err);
       setBloqueado(false);
@@ -177,7 +175,14 @@ export default function PisciculturaPage() {
         isOpen={isOpen}
         onOpenChange={onOpenChange}
       >
-        {activeForm === "timer" && <ConfigTimerForm onClose={onOpenChange} />}
+        {activeForm === "timer" && (
+          <ConfigTimerForm
+            onClose={async () => {
+              onOpenChange();
+              await obtenerInfo();
+            }}
+          />
+        )}
         {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
         {activeForm === "reportes" && (
           <ReportDownloader onClose={onOpenChange} userName={userFullName} />

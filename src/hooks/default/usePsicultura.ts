@@ -1,12 +1,12 @@
-import { axiosAPI } from '@/api/axiosAPI';
-import { useState } from 'react';
+import { axiosAPI } from "@/api/axiosAPI";
+import { useState } from "react";
 
 export function usePiscicultura() {
   const [loading, setLoading] = useState(false);
 
   const validarBroker = async (data: any) => {
     setLoading(true);
-    const res = await axiosAPI.post('/psicultura/validar', data);
+    const res = await axiosAPI.post("/psicultura/validar", data);
     setLoading(false);
     return res.data;
   };
@@ -14,6 +14,7 @@ export function usePiscicultura() {
   const actualizarTimer = async (id: number, data: any) => {
     setLoading(true);
     const res = await axiosAPI.patch(`/psicultura/${id}/timer`, data);
+    await obtenerInfo();
     setLoading(false);
     return res.data;
   };
