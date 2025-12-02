@@ -12,10 +12,14 @@ import { usePiscicultura } from "@/hooks/default/usePsicultura";
 import useProfile from "@/hooks/auth/useProfile";
 import PisciculturaTable from "./components/PsiculturaTable";
 
+// MQTT
+import { connectBroker, mqttClient } from "@/broker/mqttClient";
+
 export default function PisciculturaPage() {
   const [activeForm, setActiveForm] = useState<
     "reportes" | "timer" | "broker" | null
   >(null);
+
   const [isOn, setIsOn] = useState(false);
   const { profile } = useProfile();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -27,25 +31,29 @@ export default function PisciculturaPage() {
   const [registroActivoId, setRegistroActivoId] = useState<number | null>(null);
 
   const [bloqueado, setBloqueado] = useState(false);
+  const [mqttValor, setMqttValor] = useState<string | null>(null);
 
-  // Carga info inicial y historial
+  const TOPIC = "lab/diego/signals";
+
+  // ================================
+  // 🚀 CARGAR DATOS DESDE BASE DE DATOS
+  // ================================
   const cargarDatos = async () => {
     try {
       const info = await obtenerInfo();
       if (!info || info.length === 0) return;
+
       const main = info[0];
       setPsiculturaId(main.id);
 
       const historial = await obtenerHistorial(main.id);
       setRegistrosTabla(historial);
 
-      // Si hay un historial abierto (fin === null) lo guardamos como activo
       const abierto = historial.find((h: any) => h.fin === null);
       if (abierto) {
         setRegistroActivoId(abierto.id);
         setIsOn(Boolean(abierto.estado));
       } else {
-        // si no hay historial abierto, sincronizamos con registro principal
         const estadoMain = await obtenerEstado(main.id);
         setIsOn(Boolean(estadoMain.estado));
         setRegistroActivoId(null);
@@ -57,43 +65,77 @@ export default function PisciculturaPage() {
 
   useEffect(() => {
     cargarDatos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ================================
+  // 🔌 MQTT EN FRONTEND (CONEXIÓN + SUB)
+  // ================================
+  useEffect(() => {
+    const client = connectBroker();
+
+    client.on("connect", () => {
+      console.log("⚡ MQTT conectado en frontend");
+
+      client.subscribe(TOPIC, (err: any) => {
+        if (!err) console.log("📡 Suscrito a:", TOPIC);
+        else console.error("❌ Error al suscribirse:", err);
+      });
+    });
+
+client.on("message", (topic, message) => {
+      const value = message.toString();
+      console.log("📩 MQTT recibió:", value);
+
+      setMqttValor(value);
+
+      // sincroniza el toggle automáticamente
+      if (value === "true") setIsOn(true);
+      if (value === "false") setIsOn(false);
+    });
+
+    return () => {
+      client.end(true);
+      console.log("🔌 MQTT desconectado del frontend");
+    };
+  }, []);
+
+  // ================================
+  // 🔁 FUNCION TOGGLE (BD + MQTT)
+  // ================================
   const toggle = async () => {
     if (!psiculturaId) return;
 
     try {
       const nuevoEstado = !isOn;
-
-      // 🔒 BLOQUEAR inmediatamente para evitar que el interval o cargarDatos pisen el cambio
       setBloqueado(true);
 
       const res = await cambiarEstado(psiculturaId, nuevoEstado, true);
 
-      if (res.historialIdCreated) {
-        setRegistroActivoId(res.historialIdCreated);
-      }
-
       if (res.estado !== undefined) {
-        setIsOn(Boolean(res.estado)); 
+        setIsOn(Boolean(res.estado));
       }
 
+      // 👉 publicar a MQTT
+      const client = mqttClient();
+      if (client) {
+        client.publish(TOPIC, nuevoEstado ? "true" : "false");
+        console.log("📤 enviado MQTT:", nuevoEstado);
+      }
 
       setTimeout(() => setBloqueado(false), 3000);
-
     } catch (err) {
       console.error("❌ Error en toggle:", err);
       setBloqueado(false);
     }
   };
 
-  // refresco periódico del estado (no pisar manual)
+  // ================================
+  // 🔄 REFRESCO PERIÓDICO BD
+  // ================================
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        if (bloqueado) return;
-        if (!psiculturaId) return;
+        if (bloqueado || !psiculturaId) return;
 
         const estadoBD = await obtenerEstado(psiculturaId);
 
@@ -119,6 +161,7 @@ export default function PisciculturaPage() {
     <>
       <PageTitle>Piscicultura</PageTitle>
 
+      {/* Tarjetas superiores */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 my-6">
         <CustomCard title="Control de Estanques" icon={<Fish size={40} />}>
           <p>Monitoreo de niveles, oxígeno y limpieza de estanques.</p>
@@ -133,6 +176,7 @@ export default function PisciculturaPage() {
         </CustomCard>
       </div>
 
+      {/* Botones superiores */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <CustomButton
           onPress={() => {
@@ -162,45 +206,47 @@ export default function PisciculturaPage() {
         </CustomButton>
       </div>
 
+      {/* Modal */}
       <CustomModal
         title={
           activeForm === "timer"
             ? "Configurar Timer"
             : activeForm === "broker"
-              ? "Configuración del Broker"
-              : activeForm === "reportes"
-                ? "Reporte Piscicultura"
-                : ""
+            ? "Configuración del Broker"
+            : activeForm === "reportes"
+            ? "Reporte Piscicultura"
+            : ""
         }
         isOpen={isOpen}
         onOpenChange={onOpenChange}
       >
-        {activeForm === "timer" && (
-          <ConfigTimerForm
-            onClose={async () => {
-              onOpenChange();
-              await obtenerInfo();
-            }}
-          />
-        )}
+        {activeForm === "timer" && <ConfigTimerForm onClose={onOpenChange} />}
         {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
         {activeForm === "reportes" && (
           <ReportDownloader onClose={onOpenChange} userName={userFullName} />
         )}
       </CustomModal>
 
+      {/* TOGGLE */}
       <div className="flex justify-center mt-10">
         <div
           onClick={toggle}
-          className={`relative w-56 h-28 rounded-full cursor-pointer flex items-center select-none transition-colors duration-300 ${isOn ? "bg-green-500" : "bg-red-500"}`}
+          className={`relative w-56 h-28 rounded-full cursor-pointer flex items-center select-none transition-colors duration-300 ${
+            isOn ? "bg-green-500" : "bg-red-500"
+          }`}
         >
           <span
-            className={`absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300 ${isOn ? "left-6" : "right-6"}`}
+            className={`absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300 ${
+              isOn ? "left-6" : "right-6"
+            }`}
           >
             {isOn ? "ON" : "OFF"}
           </span>
+
           <div
-            className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${isOn ? "translate-x-28" : "translate-x-2"}`}
+            className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${
+              isOn ? "translate-x-28" : "translate-x-2"
+            }`}
           />
         </div>
       </div>

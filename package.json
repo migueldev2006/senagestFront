@@ -36,6 +36,7 @@
     "framer-motion": "11.15.0",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.487.0",
+    "mqtt": "^5.14.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-hook-form": "^7.55.0",
@@ -48,6 +49,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/mqtt": "^0.0.34",
     "@types/node": "20.5.7",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
