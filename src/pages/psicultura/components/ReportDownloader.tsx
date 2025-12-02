@@ -55,8 +55,13 @@ const filas = reportes.map((r) => {
     f.getFullYear(),          
     r.encendidoPor || userName || "N/A",
     r.apagadoPor || userName || "N/A",
-    r.TiempoEncendido,
+    r.tiempoEncendido,
     r.tiempoApagado,
+    r.tiempoMs,
+    r.estado,
+    r.modo,
+    r.inicio,
+    r.fin,
   ];
 });
 
@@ -74,6 +79,11 @@ const filas = reportes.map((r) => {
         "QUIÉN APAGÓ",
         "TIEMPO ENCENDIDO",
         "TIEMPO APAGADO",
+        "TIEMPO MANUAL",
+        "ESTADO",
+        "MODO",
+        "INICIO",
+        "FIN",
       ],
       ...filas, 
     ];
