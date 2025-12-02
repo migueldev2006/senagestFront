@@ -1,7 +1,7 @@
 import PageTitle from "@/components/atoms/PageTitle";
 import CustomCard from "@/components/atoms/Card";
-import { Fish, Wheat, BarChart2 } from "lucide-react";
 import CustomButton from "@/components/atoms/CustomButton";
+import { Fish, Wheat, BarChart2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ConfigBrokerForm from "./components/ConfigBrokerForm";
 import ConfigTimerForm from "./components/ConfigTimerForm";
@@ -10,74 +10,108 @@ import { useDisclosure } from "@heroui/modal";
 import ReportDownloader from "./components/ReportDownloader";
 import { usePiscicultura } from "@/hooks/default/usePsicultura";
 import useProfile from "@/hooks/auth/useProfile";
-import PisciculturaTable from "../psicultura/components/PsiculturaTable";
-import { axiosAPI } from "@/api/axiosAPI";
-
+import PisciculturaTable from "./components/PsiculturaTable";
 
 export default function PisciculturaPage() {
   const [activeForm, setActiveForm] = useState<
     "reportes" | "timer" | "broker" | null
   >(null);
-
   const [isOn, setIsOn] = useState(false);
-   const { profile, isLoading } = useProfile();
-
+  const { profile } = useProfile();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { cambiarEstado, obtenerEstado, obtenerHistorial, obtenerInfo } =
+    usePiscicultura();
 
-const { cambiarEstado, obtenerEstado } = usePiscicultura()
+  const [registrosTabla, setRegistrosTabla] = useState<any[]>([]);
+  const [psiculturaId, setPsiculturaId] = useState<number | null>(null);
+  const [registroActivoId, setRegistroActivoId] = useState<number | null>(null);
 
-const [registrosTabla, setRegistrosTabla] = useState<any[]>([]);
+  const [bloqueado, setBloqueado] = useState(false);
 
-const cargarTodosLosRegistros = async () => {
-  try {
-    const { data } = await axiosAPI.get("/psicultura/info");
-    setRegistrosTabla(data);
-  } catch (error) {
-    console.error("Error cargando registros:", error);
-  }
-};
+  // Carga info inicial y historial
+  const cargarDatos = async () => {
+    try {
+      const info = await obtenerInfo();
+      if (!info || info.length === 0) return;
+      const main = info[0];
+      setPsiculturaId(main.id);
 
-useEffect(() => {
-  cargarTodosLosRegistros();
-}, []);
+      const historial = await obtenerHistorial(main.id);
+      setRegistrosTabla(historial);
 
-
-useEffect(() => {
-  cargarTodosLosRegistros();
-}, []);
-
-const toggle = async (registroId: number) => {
-  const nuevoEstado = !isOn;
-  const estadoBackend = await cambiarEstado(registroId, nuevoEstado, true);
-  setIsOn(estadoBackend.estado);
-
-  await cargarTodosLosRegistros(); // actualizar la tabla
-};
-
-useEffect(() => {
-  const fetchEstado = async () => {
-    if (registrosTabla.length > 0) {
-      const e = await obtenerEstado(registrosTabla[0].id);
-      setIsOn(e.estado);
+      // Si hay un historial abierto (fin === null) lo guardamos como activo
+      const abierto = historial.find((h: any) => h.fin === null);
+      if (abierto) {
+        setRegistroActivoId(abierto.id);
+        setIsOn(Boolean(abierto.estado));
+      } else {
+        // si no hay historial abierto, sincronizamos con registro principal
+        const estadoMain = await obtenerEstado(main.id);
+        setIsOn(Boolean(estadoMain.estado));
+        setRegistroActivoId(null);
+      }
+    } catch (err) {
+      console.error("Error cargando datos", err);
     }
   };
-  fetchEstado();
-}, [registrosTabla]);
 
+  useEffect(() => {
+    cargarDatos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-useEffect(() => {
-  const interval = setInterval(async () => {
+  const toggle = async () => {
+    if (!psiculturaId) return;
+
     try {
-      const e = await obtenerEstado(1);
-      setIsOn(e.estado);
+      const nuevoEstado = !isOn;
+
+      // 🔒 BLOQUEAR inmediatamente para evitar que el interval o cargarDatos pisen el cambio
+      setBloqueado(true);
+
+      const res = await cambiarEstado(psiculturaId, nuevoEstado, true);
+
+      if (res.historialIdCreated) {
+        setRegistroActivoId(res.historialIdCreated);
+      }
+
+      if (res.estado !== undefined) {
+        setIsOn(Boolean(res.estado)); // estado confirmado por backend
+      }
+
+      // 🔓 desbloquear después de 2s
+      setTimeout(() => setBloqueado(false), 3000);
+
+      // ❌ NO LLAMES cargarDatos() aquí — pisará el estado recién cambiado
+      // await cargarDatos();
     } catch (err) {
-      console.error("Error refrescando estado", err);
+      console.error("❌ Error en toggle:", err);
+      setBloqueado(false);
     }
-  }, 5000);
+  };
 
-  return () => clearInterval(interval);
-}, []);
+  // refresco periódico del estado (no pisar manual)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        if (bloqueado) return;
+        if (!psiculturaId) return;
 
+        const estadoBD = await obtenerEstado(psiculturaId);
+
+        if (estadoBD.estadoActual !== "automatico") return;
+
+        setIsOn((prev) => {
+          if (prev !== estadoBD.estado) return estadoBD.estado;
+          return prev;
+        });
+      } catch (err) {
+        console.error("Error refrescando estado", err);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [psiculturaId, bloqueado, obtenerEstado]);
 
   const userFullName = profile
     ? `${profile.primerNombre} ${profile.primerApellido}`
@@ -130,7 +164,6 @@ useEffect(() => {
         </CustomButton>
       </div>
 
-      {/* Modal Único */}
       <CustomModal
         title={
           activeForm === "timer"
@@ -146,32 +179,28 @@ useEffect(() => {
       >
         {activeForm === "timer" && <ConfigTimerForm onClose={onOpenChange} />}
         {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
-
         {activeForm === "reportes" && (
-          <ReportDownloader
-            onClose={onOpenChange}
-            userName={userFullName}   
-          />
+          <ReportDownloader onClose={onOpenChange} userName={userFullName} />
         )}
       </CustomModal>
 
-     <div className="flex justify-center mt-10">
+      <div className="flex justify-center mt-10">
         <div
-          onClick={() => toggle(registrosTabla[0]?.id)}
+          onClick={toggle}
           className={`relative w-56 h-28 rounded-full cursor-pointer flex items-center select-none transition-colors duration-300 ${isOn ? "bg-green-500" : "bg-red-500"}`}
         >
-          <span className={`absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300 ${isOn ? "left-6" : "right-6"}`}>
+          <span
+            className={`absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300 ${isOn ? "left-6" : "right-6"}`}
+          >
             {isOn ? "ON" : "OFF"}
           </span>
-          <div className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${isOn ? "translate-x-28" : "translate-x-2"}`} />
+          <div
+            className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${isOn ? "translate-x-28" : "translate-x-2"}`}
+          />
         </div>
       </div>
-      <PisciculturaTable registros={registrosTabla} />
 
-
-      
+      <PisciculturaTable userName={userFullName} registros={registrosTabla} />
     </>
-
-    
   );
 }
