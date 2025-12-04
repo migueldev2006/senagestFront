@@ -40,7 +40,8 @@ export default function PisciculturaPage() {
     (async () => {
       const data = await obtenerInfo();
       if (!data) return;
-      await obtenerHistorial(data.id);
+      // Cargar registros combinados (DB + broker)
+      await cargarTodosLosRegistros(data.id);
       const estado = await obtenerEstado(data.id);
       setIsOn(Boolean(estado?.estado));
     })();
@@ -76,6 +77,12 @@ export default function PisciculturaPage() {
       } catch (err) {
         console.error('Error publicando desde frontend', err);
       }
+      // Refresh combined registros so records saved by broker also appear
+      try {
+        await cargarTodosLosRegistros(info?.id);
+      } catch (err) {
+        console.warn('No se pudo recargar registros combinados tras toggle', err);
+      }
     } catch (err) {
       console.error('Error toggling', err);
     } finally {
@@ -86,15 +93,34 @@ export default function PisciculturaPage() {
     }
   };
 
-    async function cargarTodosLosRegistros() {
+    async function cargarTodosLosRegistros(psiculturaId?: number) {
       try {
-        const combinado = await fetchAllStoredRecords(info?.id);
+        const combinado = await fetchAllStoredRecords(psiculturaId ?? info?.id);
         // actualizar historial usando el setter provisto por el hook
         setHistorial(combinado);
       } catch (err) {
         console.error("Error cargando todos los registros:", err);
       }
     }
+
+    // Polling adicional en la página para recargar registros combinados (incluye broker)
+    // Esto asegura que los registros que el broker haya guardado en `http://localhost:3000/`
+    // se reflejen en la tabla incluso si el backend no notifica inmediatamente.
+    useEffect(() => {
+      if (!info?.id) return;
+      const idToUse = info.id;
+      const t = window.setInterval(async () => {
+        try {
+          await cargarTodosLosRegistros(idToUse);
+        } catch (err) {
+          // console.warn - no we don't spam logs
+        }
+      }, 5000);
+
+      return () => {
+        window.clearInterval(t);
+      };
+    }, [info?.id]);
 
   return (
     <>
@@ -156,3 +182,5 @@ export default function PisciculturaPage() {
     
   );
 }
+
+

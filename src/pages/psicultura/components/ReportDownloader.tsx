@@ -71,7 +71,6 @@ const filas = reportes.map((r) => {
     f.getFullYear(),          // Año
     r.encendidoPor || userName || "N/A", // Encendido por
     r.apagadoPor || userName || "N/A",   // Apagado por
-    tipo,                     // Tipo (Manual/Automático)
     r.modo || "auto",         // Modo
     r.estado ? "Encendido" : "Apagado", // Estado
     r.tiempoEncendido || "00:00:00", // Tiempo Encendido
