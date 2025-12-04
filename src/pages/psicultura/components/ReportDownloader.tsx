@@ -12,20 +12,14 @@ interface Props {
 export default function ReportDownloader({ onClose, userName }: Props) {
   const [fecha, setFecha] = useState("");
 
-  // Lista de reportes filtrados por día
   const [reportes, setReportes] = useState<any[]>([]);
 
-  // ------------------ OBTENER REPORTES DEL DÍA ------------------
   const fetchReportesDelDia = async () => {
     if (!fecha) return;
 
     try {
-      // Obtener todos los registros combinados desde DB y endpoints adicionales
       const combinado = await fetchAllStoredRecords();
 
-      // Filtrar por la fecha seleccionada: incluir registros que coincidan en:
-      // - fechaCreacion, inicio o fin en esa fecha
-      // - O ciclos que abarquen esa fecha (inicio < fecha y fin > fecha)
       const registrosFiltrados = combinado.filter((r: any) => {
         const fechaCreacion = r.fechaCreacion ? new Date(r.fechaCreacion).toISOString().split("T")[0] : null;
         const fechaInicio = r.inicio ? new Date(r.inicio).toISOString().split("T")[0] : null;
@@ -48,7 +42,6 @@ export default function ReportDownloader({ onClose, userName }: Props) {
     fetchReportesDelDia();
   }, [fecha]);
 
-  // ------------------ GENERAR EXCEL ------------------
   const downloadReport = () => {
     if (reportes.length === 0) {
       alert("No hay registros para esta fecha.");
@@ -58,30 +51,32 @@ export default function ReportDownloader({ onClose, userName }: Props) {
 const filas = reportes.map((r) => {
   const fechaCreacion = r.fechaCreacion || r.inicio || new Date().toISOString();
   const f = new Date(fechaCreacion);
-  const fechaOriginal = f.toISOString().split("T")[0]; // yyyy-mm-dd
-  const diaOriginal = fechaOriginal.split("-")[2];     // dd
+  const fechaOriginal = f.toISOString().split("T")[0]; 
+  const diaOriginal = fechaOriginal.split("-")[2];    
 
-  // Determinar si es Manual o Automático
+  
   const tipo = r.manual === true ? "Manual" : (r.manual === false ? "Automático" : "N/A");
+  const encendidoPor = !r.inicio ? "Sistema" : (r.encendidoPor || userName || "N/A");
+  const apagadoPor = !r.inicio ? "Sistema" : (r.apagadoPor || userName || "N/A");
 
   return [
-    diaOriginal,              // Día
-    fechaOriginal,            // Fecha
-    f.toLocaleTimeString("es-CO", { hour12: true }), // Hora
-    f.getFullYear(),          // Año
-    r.encendidoPor || userName || "N/A", // Encendido por
-    r.apagadoPor || userName || "N/A",   // Apagado por
-    r.modo || "auto",         // Modo
-    r.estado ? "Encendido" : "Apagado", // Estado
-    r.tiempoEncendido || "00:00:00", // Tiempo Encendido
-    r.tiempoApagado || "00:00:00",   // Tiempo Apagado
-    r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0", // Tiempo Manual (s)
+    diaOriginal,              
+    fechaOriginal,           
+    f.toLocaleTimeString("es-CO", { hour12: true }), 
+    f.getFullYear(),          
+    encendidoPor,
+    apagadoPor,  
+    r.modo || "auto",         
+    r.estado ? "Encendido" : "Apagado",
+    r.tiempoEncendido || "00:00:00", 
+    r.tiempoApagado || "00:00:00",   
+    r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0", 
     r.inicio
       ? new Date(r.inicio).toLocaleString("es-CO", { hour12: true })
-      : "—", // Inicio
+      : "—", 
     r.fin
       ? new Date(r.fin).toLocaleString("es-CO", { hour12: true })
-      : "En curso", // Fin
+      : "En curso", 
   ];
 });
 
@@ -105,7 +100,7 @@ const filas = reportes.map((r) => {
         "INICIO",
         "FIN",
       ],
-      ...filas, // <<--- AQUI SE COLOCAN TODAS LAS FILAS DEL DÍA
+      ...filas, 
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(data);

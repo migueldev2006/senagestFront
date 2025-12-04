@@ -55,10 +55,14 @@ export default function PisciculturaTable({ registros, userName }: Props) {
                 <TableCell>{fecha.getFullYear()}</TableCell>
 
                 {/* Encendido por */}
-                <TableCell>{r.encendidoPor || userName || "N/A"}</TableCell>
+                <TableCell>
+                  {!r.inicio ? "Sistema" : (r.encendidoPor || userName || "N/A")}
+                </TableCell>
 
                 {/* Apagado por */}
-                <TableCell>{r.apagadoPor || userName || "N/A"}</TableCell>
+                <TableCell>
+                  {!r.inicio ? "Sistema" : (r.apagadoPor || userName || "N/A")}
+                </TableCell>
 
                 {/* Modo */}
                 <TableCell>{r.modo || "auto"}</TableCell>

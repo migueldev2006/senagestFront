@@ -19,9 +19,12 @@ function parseToISO(val: any): string | undefined {
   return undefined;
 }
 
-function normalizeRecord(r: any): any {
+function normalizeRecord(r: any, endpointName?: string): any {
   // Keep original as raw
   const raw = r;
+
+  // Determine if this record comes from external broker endpoints
+  const isFromBroker = endpointName?.includes('broker') === true;
 
   // Common candidates
   const fechaCreacion = r.fechaCreacion || r.timestamp || r.time || r.t || r.fecha || r.createdAt || r.date;
@@ -58,6 +61,7 @@ function normalizeRecord(r: any): any {
     tiempoApagado,
     tiempoMs,
     manual,
+    source: isFromBroker ? 'external' : 'internal',
     raw,
   };
 }
@@ -108,7 +112,7 @@ export async function fetchAllStoredRecords(psiculturaId?: number) {
             }
           }
         }
-        arr.forEach((item: any) => results.push(item));
+        arr.forEach((item: any) => results.push({ ...item, _endpointName: ep.name }));
       } catch (err) {
         // ignore per-endpoint errors
         console.warn('Error fetching', ep.url, err);
@@ -117,7 +121,7 @@ export async function fetchAllStoredRecords(psiculturaId?: number) {
   );
 
   // Normalize and dedupe
-  const normalized = results.map(normalizeRecord);
+  const normalized = results.map((r) => normalizeRecord(r, r._endpointName));
   const map = new Map<string, any>();
   normalized.forEach((r) => {
     // key by fechaCreacion|inicio|fin|encendidoPor
