@@ -40,48 +40,36 @@ export default function PisciculturaTable({ registros, userName }: Props) {
 
             return (
               <TableRow key={index}>
-                {/* Día */}
                 <TableCell>{fecha.getDate()}</TableCell>
 
-                {/* Fecha */}
                 <TableCell>{fecha.toISOString().split("T")[0]}</TableCell>
 
-                {/* Hora */}
                 <TableCell>
                   {fecha.toLocaleTimeString("es-CO", { hour12: true })}
                 </TableCell>
 
-                {/* Año */}
                 <TableCell>{fecha.getFullYear()}</TableCell>
 
-                {/* Encendido por */}
                 <TableCell>
                   {!r.inicio ? "Sistema" : (r.encendidoPor || userName || "N/A")}
                 </TableCell>
 
-                {/* Apagado por */}
                 <TableCell>
                   {!r.inicio ? "Sistema" : (r.apagadoPor || userName || "N/A")}
                 </TableCell>
 
-                {/* Modo */}
                 <TableCell>{r.modo || "auto"}</TableCell>
 
-                {/* Estado */}
                 <TableCell>{r.estado ? "Encendido" : "Apagado"}</TableCell>
 
-                {/* Tiempo Encendido */}
                 <TableCell>{r.tiempoEncendido || "00:00:00"}</TableCell>
 
-                {/* Tiempo Apagado */}
                 <TableCell>{r.tiempoApagado || "00:00:00"}</TableCell>
 
-                {/* Tiempo Manual */}
                 <TableCell>
                   {r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0"}
                 </TableCell>
 
-                {/* Inicio ciclo */}
                 <TableCell>
                   {r.inicio
                     ? new Date(r.inicio).toLocaleString("es-CO", {
@@ -90,7 +78,6 @@ export default function PisciculturaTable({ registros, userName }: Props) {
                     : "—"}
                 </TableCell>
 
-                {/* Fin ciclo */}
                 <TableCell>
                   {r.fin
                     ? new Date(r.fin).toLocaleString("es-CO", { hour12: true })

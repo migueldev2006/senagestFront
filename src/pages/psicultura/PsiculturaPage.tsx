@@ -14,6 +14,7 @@ import useProfile from "@/hooks/auth/useProfile";
 import PisciculturaTable from "./components/PsiculturaTable";
 import { mqttClient, publish } from "@/broker/mqttClient";
 import { fetchAllStoredRecords } from "@/utils/psiculturaData";
+import BrokerStateChart from "./components/BrokerStateChart";
 
 export default function PisciculturaPage() {
   const { profile } = useProfile();
@@ -175,6 +176,8 @@ export default function PisciculturaPage() {
           <div className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${isOn ? "translate-x-28" : "translate-x-2"}`} />
         </div>
       </div>
+
+      <BrokerStateChart registros={historial} />
 
       <PisciculturaTable userName={userFullName} registros={historial} />
     </>
