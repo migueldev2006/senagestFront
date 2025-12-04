@@ -1,8 +1,15 @@
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/react";
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+} from "@heroui/react";
 
 interface Props {
   registros: any[];
-  userName:string
+  userName: string;
 }
 
 export default function PisciculturaTable({ registros, userName }: Props) {
@@ -51,15 +58,13 @@ export default function PisciculturaTable({ registros, userName }: Props) {
                 <TableCell>{r.encendidoPor || userName || "N/A"}</TableCell>
 
                 {/* Apagado por */}
-                <TableCell>{r.apagadoPor || userName  || "N/A"}</TableCell>
+                <TableCell>{r.apagadoPor || userName || "N/A"}</TableCell>
 
                 {/* Modo */}
                 <TableCell>{r.modo || "auto"}</TableCell>
 
                 {/* Estado */}
-                <TableCell>
-                  {r.estado ? "Encendido" : "Apagado"}
-                </TableCell>
+                <TableCell>{r.estado ? "Encendido" : "Apagado"}</TableCell>
 
                 {/* Tiempo Encendido */}
                 <TableCell>{r.tiempoEncendido || "00:00:00"}</TableCell>
@@ -68,13 +73,16 @@ export default function PisciculturaTable({ registros, userName }: Props) {
                 <TableCell>{r.tiempoApagado || "00:00:00"}</TableCell>
 
                 {/* Tiempo Manual */}
-                <TableCell>{r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0"}</TableCell>
-
+                <TableCell>
+                  {r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0"}
+                </TableCell>
 
                 {/* Inicio ciclo */}
                 <TableCell>
                   {r.inicio
-                    ? new Date(r.inicio).toLocaleString("es-CO", { hour12: true })
+                    ? new Date(r.inicio).toLocaleString("es-CO", {
+                        hour12: true,
+                      })
                     : "—"}
                 </TableCell>
 
