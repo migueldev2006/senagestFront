@@ -14,76 +14,105 @@ import useProfile from "@/hooks/auth/useProfile";
 import PisciculturaTable from "../psicultura/components/PsiculturaTable";
 import { axiosAPI } from "@/api/axiosAPI";
 
-
 export default function PisciculturaPage() {
   const [activeForm, setActiveForm] = useState<
     "reportes" | "timer" | "broker" | null
   >(null);
-
   const [isOn, setIsOn] = useState(false);
-   const { profile, isLoading } = useProfile();
+  const [registrosTabla, setRegistrosTabla] = useState<any[]>([]);
 
+  const { profile } = useProfile();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
-const { obtenerEstado, cambiarEstado, obtenerHistorial } = usePiscicultura(1);
-
-const [registrosTabla, setRegistrosTabla] = useState<any[]>([]);
-
-const cargarTodosLosRegistros = async () => {
-  try {
-    const { data: autos } = await axiosAPI.get("/psicultura/info");
-    const manuales = await obtenerHistorial(1);
-
-    // unir auto + manual
-    const combinados = [...autos, ...manuales];
-
-    setRegistrosTabla(combinados);
-  } catch (error) {
-    console.error("Error cargando registros:", error);
-  }
-};
-
-
-useEffect(() => {
-  cargarTodosLosRegistros();
-}, []);
-
-
-useEffect(() => {
-  cargarTodosLosRegistros();
-}, []);
-
-useEffect(() => {
-  const interval = setInterval(() => {
-    cargarTodosLosRegistros();
-  }, 3000);
-
-  return () => clearInterval(interval);
-}, []);
-
-const toggle = async () => {
-  const nuevoEstado = !isOn;
-  try {
-    await cambiarEstado(1, nuevoEstado);
-    setIsOn(nuevoEstado); // actualizar frontend inmediatamente
-    // recargar registros para que la tabla refleje el nuevo registro
-    await cargarTodosLosRegistros();
-  } catch (error) {
-    console.error("Error al cambiar estado:", error);
-  }
-};
-
-useEffect(() => {
-  const fetchEstado = async () => {
-    const e = await obtenerEstado(1)
-    setIsOn(e)
-  }
-  fetchEstado()
-}, [])
+  const { info, obtenerInfo, cambiarEstado, obtenerHistorial, obtenerEstado } =
+    usePiscicultura(1);
 
   const userFullName = profile
     ? `${profile.primerNombre} ${profile.primerApellido}`
     : "Cargando...";
+
+  // Función para cargar todos los registros (auto + manual)
+  const cargarTodosLosRegistros = async () => {
+    try {
+      const { data: autos } = await axiosAPI.get("/psicultura/info");
+      const manuales = await obtenerHistorial(1);
+      const combinados = [...autos, ...manuales];
+      setRegistrosTabla(combinados);
+    } catch (error) {
+      console.error("Error cargando registros:", error);
+    }
+  };
+
+const refrescarToggle = (registros: any[]) => {
+  if (!registros || registros.length === 0) return false;
+
+  // Tomar el registro más reciente por id
+  const ultimoRegistro = registros.reduce((prev, curr) =>
+    curr.id > prev.id ? curr : prev
+  );
+
+  console.log("refrescarToggle → ultimoRegistro:", ultimoRegistro);
+
+  // El toggle refleja el estado de manual o automático
+  const estadoBool =
+    (ultimoRegistro.estadoActual.toLowerCase() === "manual" ||
+      ultimoRegistro.estadoActual.toLowerCase() === "automatico") &&
+    ultimoRegistro.estado === true;
+
+  console.log("refrescarToggle → estadoBool calculado:", estadoBool);
+  return estadoBool;
+};
+
+
+
+  // Polling actualizado
+ useEffect(() => {
+  let mounted = true;
+
+  const refrescar = async () => {
+    console.log("Polling → refrescando registros y toggle...");
+    try {
+      const { data: autos } = await axiosAPI.get("/psicultura/info");
+      const manuales = await obtenerHistorial(1);
+      const combinados = [...autos, ...manuales];
+
+      if (!mounted) return;
+
+      setRegistrosTabla(combinados);
+
+      const nuevoToggle = refrescarToggle(combinados);
+      setIsOn(nuevoToggle);
+      console.log("Polling → toggle actualizado:", nuevoToggle);
+    } catch (err) {
+      console.error("Polling → Error:", err);
+    }
+  };
+
+  refrescar(); // fetch inicial
+  const interval = setInterval(refrescar, 3000);
+
+  return () => {
+    mounted = false;
+    clearInterval(interval);
+  };
+}, []);
+
+  // Toggle manual
+  const toggle = async () => {
+    try {
+      const nuevoEstado = !isOn;
+      console.log("Toggle manual → nuevoEstado:", nuevoEstado);
+      await cambiarEstado(1, nuevoEstado);
+      console.log("Toggle manual → cambiarEstado completado");
+
+      await cargarTodosLosRegistros();
+      console.log("Toggle manual → registrosTabla recargados:", registrosTabla);
+
+      refrescarToggle(registrosTabla); // actualizar toggle según el último registro
+      console.log("Toggle manual → toggle actualizado según último registro");
+    } catch (err) {
+      console.error("Toggle manual → Error:", err);
+    }
+  };
 
   return (
     <>
@@ -104,9 +133,30 @@ useEffect(() => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <CustomButton onPress={() => { setActiveForm("reportes"); onOpen(); }}>Reportes</CustomButton>
-        <CustomButton onPress={() => { setActiveForm("timer"); onOpen(); }}>Configurar Tiempo</CustomButton>
-        <CustomButton onPress={() => { setActiveForm("broker"); onOpen(); }}>Configuración Broker</CustomButton>
+        <CustomButton
+          onPress={() => {
+            setActiveForm("reportes");
+            onOpen();
+          }}
+        >
+          Reportes
+        </CustomButton>
+        <CustomButton
+          onPress={() => {
+            setActiveForm("timer");
+            onOpen();
+          }}
+        >
+          Configurar Tiempo
+        </CustomButton>
+        <CustomButton
+          onPress={() => {
+            setActiveForm("broker");
+            onOpen();
+          }}
+        >
+          Configuración Broker
+        </CustomButton>
       </div>
 
       {/* Modal Único */}
@@ -134,30 +184,26 @@ useEffect(() => {
         {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
 
         {activeForm === "reportes" && (
-          <ReportDownloader
-            onClose={onOpenChange}
-            userName={userFullName}   
-          />
+          <ReportDownloader onClose={onOpenChange} userName={userFullName} />
         )}
       </CustomModal>
 
-     <div className="flex justify-center mt-10">
+      <div className="flex justify-center mt-10">
         <div
           onClick={toggle}
           className={`relative w-56 h-28 rounded-full cursor-pointer flex items-center select-none transition-colors duration-300 ${isOn ? "bg-green-500" : "bg-red-500"}`}
         >
-          <span className={`absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300 ${isOn ? "left-6" : "right-6"}`}>
+          <span
+            className={`absolute text-white text-3xl font-extrabold tracking-wide z-20 transition-all duration-300 ${isOn ? "left-6" : "right-6"}`}
+          >
             {isOn ? "ON" : "OFF"}
           </span>
-          <div className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${isOn ? "translate-x-28" : "translate-x-2"}`} />
+          <div
+            className={`absolute w-24 h-24 bg-white rounded-full shadow-2xl transition-all duration-300 z-10 ${isOn ? "translate-x-28" : "translate-x-2"}`}
+          />
         </div>
       </div>
       <PisciculturaTable registros={registrosTabla} userName={userFullName} />
-
-
-      
     </>
-
-    
   );
 }
