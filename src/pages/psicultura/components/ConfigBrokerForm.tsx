@@ -33,9 +33,12 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
     return Object.values(newErrors).every(x => x === "")
   }
 
-  // Construimos la URL final que usa MQTT por WebSocket
+  // Construimos la URL final según el puerto elegido
   const buildFinalUrl = () => {
-    return `wss://${form.url}:${form.puerto}/mqtt`
+    const puerto = form.puerto.trim()
+    // Si el puerto es 8883 usamos mqtts, si es 8884 o cualquier otro ws
+    if (puerto === "8883") return `mqtts://${form.url}:${puerto}`
+    return `wss://${form.url}:${puerto}/mqtt`
   }
 
   // ---------------------------------------
@@ -125,7 +128,7 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
 
       <Input
         label="Host (sin protocolo)"
-        placeholder="ej: 3f1876...hivemq.cloud"
+        placeholder="ej: 3f187645294a400cbe2d87a2ec16ec53.s1.eu.hivemq.cloud"
         value={form.url}
         isInvalid={!!errors.url}
         errorMessage={errors.url}
@@ -135,7 +138,7 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
       <Input
         label="Puerto"
         type="number"
-        placeholder="ej: 8884"
+        placeholder="ej: 8883 o 8884"
         value={form.puerto}
         isInvalid={!!errors.puerto}
         errorMessage={errors.puerto}
