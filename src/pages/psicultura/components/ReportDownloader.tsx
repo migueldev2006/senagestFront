@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import { Button, Input } from "@heroui/react";
 import * as XLSX from "xlsx";
-import { axiosAPI } from "@/api/axiosAPI";
+import { fetchAllStoredRecords } from "@/utils/psiculturaData";
+
 
 interface Props {
   onClose: () => void;
@@ -12,21 +13,24 @@ interface Props {
 export default function ReportDownloader({ onClose, userName }: Props) {
   const [fecha, setFecha] = useState("");
 
-  // Lista de reportes filtrados por día
   const [reportes, setReportes] = useState<any[]>([]);
 
-  // ------------------ OBTENER REPORTES DEL DÍA ------------------
   const fetchReportesDelDia = async () => {
     if (!fecha) return;
 
     try {
-      const { data } = await axiosAPI.get("/psicultura/info");
+      const combinado = await fetchAllStoredRecords();
 
-      // Filtrar por la fecha seleccionada (día exacto)
-      const registrosFiltrados = data.filter((r: any) => {
-        const f = new Date(r.fechaCreacion);
-        const fechaDB = f.toISOString().split("T")[0]; // yyyy-mm-dd
-        return fechaDB === fecha; // compara exacto contra el input
+      const registrosFiltrados = combinado.filter((r: any) => {
+        const fechaCreacion = r.fechaCreacion ? new Date(r.fechaCreacion).toISOString().split("T")[0] : null;
+        const fechaInicio = r.inicio ? new Date(r.inicio).toISOString().split("T")[0] : null;
+        const fechaFin = r.fin ? new Date(r.fin).toISOString().split("T")[0] : null;
+
+        if (fechaCreacion === fecha || fechaInicio === fecha || fechaFin === fecha) return true;
+        if (fechaInicio && fechaFin) {
+          if (fechaInicio <= fecha && fechaFin >= fecha) return true;
+        }
+        return false;
       });
 
       setReportes(registrosFiltrados);
@@ -39,7 +43,6 @@ export default function ReportDownloader({ onClose, userName }: Props) {
     fetchReportesDelDia();
   }, [fecha]);
 
-  // ------------------ GENERAR EXCEL ------------------
   const downloadReport = () => {
     if (reportes.length === 0) {
       alert("No hay registros para esta fecha.");
@@ -47,23 +50,36 @@ export default function ReportDownloader({ onClose, userName }: Props) {
     }
 
 const filas = reportes.map((r) => {
-  const fechaOriginal = r.fechaCreacion.split("T")[0]; // yyyy-mm-dd
-  const diaOriginal = fechaOriginal.split("-")[2];     // dd
+  const fechaCreacion = r.fechaCreacion || r.inicio || new Date().toISOString();
+  const f = new Date(fechaCreacion);
+  const fechaOriginal = f.toISOString().split("T")[0]; 
+  const diaOriginal = fechaOriginal.split("-")[2];    
 
-  const f = new Date(r.fechaCreacion);
+  
+  const tipo = r.manual === true ? "Manual" : (r.manual === false ? "Automático" : "N/A");
+  const encendidoPor = !r.inicio ? "Sistema" : (r.encendidoPor || userName || "N/A");
+  const apagadoPor = !r.inicio ? "Sistema" : (r.apagadoPor || userName || "N/A");
 
   return [
-    diaOriginal,              // día REAL del registro
-    fechaOriginal,            // fecha REAL sin modificar
-    f.toLocaleTimeString("es-CO", { hour12: true }), // hora
-    f.getFullYear(),          // año
-    r.encendidoPor || userName || "N/A",
-    r.apagadoPor || userName || "N/A",
-    r.tiempoEncendido,
-    r.tiempoApagado,
+    diaOriginal,              
+    fechaOriginal,           
+    f.toLocaleTimeString("es-CO", { hour12: true }), 
+    f.getFullYear(),          
+    encendidoPor,
+    apagadoPor,  
+    r.modo || "auto",         
+    r.estado ? "Encendido" : "Apagado",
+    r.tiempoEncendido || "00:00:00", 
+    r.tiempoApagado || "00:00:00",   
+    r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0", 
+    r.inicio
+      ? new Date(r.inicio).toLocaleString("es-CO", { hour12: true })
+      : "—", 
+    r.fin
+      ? new Date(r.fin).toLocaleString("es-CO", { hour12: true })
+      : "En curso", 
   ];
 });
-
 
     const data = [
       ["REPORTE DE PISCICULTURA"],
@@ -76,10 +92,16 @@ const filas = reportes.map((r) => {
         "AÑO",
         "QUIÉN ENCENDIÓ",
         "QUIÉN APAGÓ",
+        "TIPO",
+        "MODO",
+        "ESTADO",
         "TIEMPO ENCENDIDO",
         "TIEMPO APAGADO",
+        "TIEMPO MANUAL (s)",
+        "INICIO",
+        "FIN",
       ],
-      ...filas, // <<--- AQUI SE COLOCAN TODAS LAS FILAS DEL DÍA
+      ...filas, 
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(data);
