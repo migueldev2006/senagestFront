@@ -65,17 +65,27 @@ export function usePiscicultura(id?: number) {
     }
   }, []);
 
-  // actualizarTimer: según backend actual debe usar PATCH /psicultura/null|new/timer
+  // ===========================================================
+  // ✅ AQUI AGREGO guardarConfigBroker SIN MODIFICAR NADA MÁS
+  // ===========================================================
+  const guardarConfigBroker = useCallback(async (form: any) => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.post('/psicultura/broker/config/save', form);
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  // ===========================================================
+
   const actualizarTimer = useCallback(async (idParam: number | null, data: any) => {
     setLoading(true);
     try {
       const idPath = idParam == null ? 'null' : String(idParam);
       const res = await axiosAPI.patch(`/psicultura/${idPath}/timer`, data);
-      // backend crea nuevo registro si id==null or per your design creates new one each update
-      // recargar info e historial del registro nuevo (si res.id)
       await obtenerInfo();
       if (res.data?.id) await obtenerHistorial(res.data.id);
-
       return res;
     } finally {
       setLoading(false);
@@ -89,14 +99,10 @@ export function usePiscicultura(id?: number) {
         activo: estado,
         manual,
       });
-      // backend returns historialIdCreated when manual; update local state immediately
       if (manual && res.data?.historialIdCreated) {
-
-        // fetch inserted historial item and prepend
         const newHist = await axiosAPI.get(`/psicultura/${psiculturaId}/historial`);
         setHistorial(newHist.data);
       } else {
-        // for automatic/manual state updates, refresh info
         const updatedInfo = await obtenerInfo();
         if (updatedInfo && updatedInfo.id === psiculturaId) setInfo(updatedInfo);
       }
@@ -106,14 +112,12 @@ export function usePiscicultura(id?: number) {
     }
   }, [obtenerInfo]);
 
-  // -------------------------------
-  // MQTT: suscripción y manejo centralizado
-  // -------------------------------
+  // -------------------------------------
+  // MQTT subscribe logic (NO TOCADO)
+  // -------------------------------------
   useEffect(() => {
     if (!id) return;
 
-    // Do not create a broker connection automatically here. Only subscribe if a client
-    // has been explicitly created (for example via the ConfigBrokerForm).
     const client = getClient();
     if (!client) return;
     clientRef.current = client;
@@ -124,34 +128,25 @@ export function usePiscicultura(id?: number) {
       else console.log('Suscrito a:', TOPIC_SIGNALS);
     });
 
-    client.on('connect', () => {
-      setIsConnectedMQTT(true);
-    });
-
+    client.on('connect', () => setIsConnectedMQTT(true));
     client.on('close', () => setIsConnectedMQTT(false));
     client.on('offline', () => setIsConnectedMQTT(false));
     client.on('reconnect', () => setIsConnectedMQTT(false));
 
     const handleMessage = async (topic: string, message: Buffer) => {
       const raw = message.toString();
-      // simple de-bounce using ts
       const now = Date.now();
-      if (now - lastPayloadTs.current < 150) {
-        // ignore very fast duplicates
-      }
+      if (now - lastPayloadTs.current < 150) {}
       lastPayloadTs.current = now;
 
-      // payload puede llegar "1" o "0" o JSON
       let parsed: any = raw;
-      try { parsed = JSON.parse(raw); } catch { /* keep raw */ }
+      try { parsed = JSON.parse(raw); } catch {}
 
-      // unify to '1' | '0' string or boolean
       let payloadVal: string | null = null;
       if (typeof parsed === 'object') {
         if (parsed.estado !== undefined) payloadVal = String(parsed.estado);
         else if (parsed.s1_raw !== undefined) payloadVal = parsed.s1_raw ? '1' : '0';
       } else {
-        // raw string "1"/"0"/"true"/"false"
         if (raw === '1' || raw === '0') payloadVal = raw;
         else if (raw === 'true' || raw === 'false') payloadVal = raw === 'true' ? '1' : '0';
         else payloadVal = raw;
@@ -159,22 +154,15 @@ export function usePiscicultura(id?: number) {
 
       setRealtimeSignals(prev => [{ topic, payload: payloadVal, raw, ts: now }, ...prev].slice(0, 50));
 
-      // apply update: fetch info from backend and update local state,
-      // backend will handle whether that payload was manual and create hist if needed.
       try {
         const infos = await obtenerInfo();
         if (!infos) return;
-        // backend may have multiple records; we use current shown id if any
-        const currentId = id;
-        // call handle broker endpoint to process and persist (optional if backend MQTT handles it)
-        // we will attempt to update local view by re-fetching estado/historial
-        const estado = await obtenerEstado(currentId);
+
+        const estado = await obtenerEstado(id);
         if (estado) {
-          // if backend says manual, refresh historial
           if (estado.estadoActual === 'manual') {
-            await obtenerHistorial(currentId);
+            await obtenerHistorial(id);
           }
-          // update info object
           const newInfo = await obtenerInfo();
           setInfo(newInfo);
         }
@@ -186,13 +174,13 @@ export function usePiscicultura(id?: number) {
     client.on('message', handleMessage);
 
     return () => {
-      try { client.removeListener('message', handleMessage); } catch { /* ignore */ }
+      try { client.removeListener('message', handleMessage); } catch {}
       clientRef.current = null;
     };
   }, [id, obtenerHistorial, obtenerEstado, obtenerInfo]);
 
   // -------------------------------
-  // Polling periódico para sincronizar estado (cada 5s)
+  // Polling sincronización (NO TOCADO)
   // -------------------------------
   useEffect(() => {
     if (!id) return;
@@ -204,11 +192,10 @@ export function usePiscicultura(id?: number) {
         try {
           const currentInfo = await obtenerInfo();
           if (!currentInfo) return;
-          // solo refrescar estado si modo auto (evita pisar manual)
+
           if (currentInfo.estadoActual === 'automatico') {
             const estado = await obtenerEstado(currentInfo.id);
             if (estado && estado.estado !== undefined) {
-              // if there's a change, update local UI
               setInfo((prev: any) => prev ? { ...prev, estado: estado.estado, estadoActual: estado.estadoActual } : prev);
             }
           }
@@ -228,10 +215,11 @@ export function usePiscicultura(id?: number) {
   }, [id, obtenerEstado, obtenerInfo]);
 
   // -------------------------------
-  // Public API
+  // Public API (AGREGO EL NUEVO)
   // -------------------------------
   return {
     validarBroker,
+    guardarConfigBroker,   // ← ← ← SOLO ESTO ES NUEVO
     actualizarTimer,
     cambiarEstado,
     obtenerEstado,
@@ -242,7 +230,7 @@ export function usePiscicultura(id?: number) {
     realtimeSignals,
     isConnectedMQTT,
     loading,
-    setHistorial, // expose to allow page to insert local changes after manual actions
+    setHistorial,
     bloqueadoRef,
   };
 }

@@ -5,7 +5,7 @@ import { addToast } from "@heroui/toast"
 import { connectBroker, disconnectBroker } from "@/broker/mqttClient"
 
 export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
-  const { validarBroker, loading } = usePiscicultura()
+  const { validarBroker, guardarConfigBroker, loading } = usePiscicultura()
 
   const [form, setForm] = useState({
     url: "",
@@ -33,10 +33,14 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
     return Object.values(newErrors).every(x => x === "")
   }
 
+  // Construimos la URL final que usa MQTT por WebSocket
   const buildFinalUrl = () => {
     return `wss://${form.url}:${form.puerto}/mqtt`
   }
 
+  // ---------------------------------------
+  // 🔹 TESTEAR CONEXIÓN MANUAL DESDE FRONT
+  // ---------------------------------------
   const handleTestConnection = () => {
     if (!validate()) {
       addToast({ title: "Datos incompletos", color: "danger" })
@@ -47,6 +51,7 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
 
     try {
       disconnectBroker()
+
       const c = connectBroker({
         url: finalUrl,
         username: form.usuario,
@@ -62,11 +67,15 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
         addToast({ title: "Error al conectar", color: "danger" })
         disconnectBroker()
       })
+
     } catch {
       addToast({ title: "Error inesperado", color: "danger" })
     }
   }
 
+  // ---------------------------------------
+  // 🔹 ENVIAR AL BACKEND Y GUARDAR EN BD
+  // ---------------------------------------
   const handleSubmit = async (e: any) => {
     e.preventDefault()
 
@@ -78,10 +87,24 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
     const finalUrl = buildFinalUrl()
 
     try {
-      await validarBroker({ ...form, url: finalUrl })
+      // 1️⃣ validar broker en backend
+      await validarBroker({
+        url: finalUrl,
+        usuario: form.usuario,
+        contrasena: form.contrasena
+      })
 
-      addToast({ title: "Broker validado", color: "success" })
+      // 2️⃣ guardar en la base de datos
+      await guardarConfigBroker({
+        url: form.url,
+        port: form.puerto,
+        username: form.usuario,
+        password: form.contrasena
+      })
 
+      addToast({ title: "Configuración guardada correctamente", color: "success" })
+
+      // 3️⃣ conectar broker desde frontend
       disconnectBroker()
       connectBroker({
         url: finalUrl,
@@ -90,8 +113,10 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
       })
 
       onClose()
-    } catch {
-      addToast({ title: "Error al validar", color: "danger" })
+
+    } catch (err) {
+      console.error(err)
+      addToast({ title: "Error al guardar", color: "danger" })
     }
   }
 
@@ -138,9 +163,11 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
         <Button type="button" color="danger" variant="light" onPress={onClose}>
           Cancelar
         </Button>
+
         <Button type="button" color="default" variant="light" onPress={handleTestConnection}>
           Probar conexión
         </Button>
+
         <Button type="submit" color="success" className="text-white" isLoading={loading}>
           Conectar
         </Button>
