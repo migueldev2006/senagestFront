@@ -12,9 +12,10 @@ import ReportDownloader from "./components/ReportDownloader";
 import { usePiscicultura } from "@/hooks/default/usePsicultura";
 import useProfile from "@/hooks/auth/useProfile";
 import PisciculturaTable from "./components/PsiculturaTable";
-import { mqttClient, publish } from "@/broker/mqttClient";
+import {  publish } from "@/broker/mqttClient";
 import { fetchAllStoredRecords } from "@/utils/psiculturaData";
 import BrokerStateChart from "./components/BrokerStateChart";
+import { MqttClient } from "mqtt";
 
 export default function PisciculturaPage() {
   const { profile } = useProfile();

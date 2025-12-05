@@ -1,7 +1,7 @@
 // File: src/hooks/default/usePiscicultura.ts
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { axiosAPI } from '@/api/axiosAPI';
-import { connectBroker } from '@/broker/mqttClient';
+import { getClient } from '@/broker/mqttClient';
 
 type PsiculturaInfo = any;
 type HistorialItem = any;
@@ -112,11 +112,13 @@ export function usePiscicultura(id?: number) {
   useEffect(() => {
     if (!id) return;
 
-    const client = connectBroker();
+    // Do not create a broker connection automatically here. Only subscribe if a client
+    // has been explicitly created (for example via the ConfigBrokerForm).
+    const client = getClient();
+    if (!client) return;
     clientRef.current = client;
 
     const TOPIC_SIGNALS = 'lab/diego/signals';
-    // ensure subscribe (if already subscribed on other parts, safe)
     client.subscribe(TOPIC_SIGNALS, (err: any) => {
       if (err) console.error('Error suscribiéndose al tópico MQTT:', err);
       else console.log('Suscrito a:', TOPIC_SIGNALS);
@@ -184,8 +186,7 @@ export function usePiscicultura(id?: number) {
     client.on('message', handleMessage);
 
     return () => {
-      client.removeListener('message', handleMessage);
-      try { client.end(true); } catch { /* ignore */ }
+      try { client.removeListener('message', handleMessage); } catch { /* ignore */ }
       clientRef.current = null;
     };
   }, [id, obtenerHistorial, obtenerEstado, obtenerInfo]);
