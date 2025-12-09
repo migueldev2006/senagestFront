@@ -5,7 +5,7 @@ import { addToast } from "@heroui/toast"
 import { connectBroker, disconnectBroker } from "@/broker/mqttClient"
 
 export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
-  const { validarBroker, guardarConfigBroker, loading } = usePiscicultura()
+  const {  guardarConfigBroker, loading } = usePiscicultura()
 
   const [form, setForm] = useState({
     url: "",
@@ -87,12 +87,6 @@ export default function ConfigBrokerForm({ onClose }: { onClose: () => void }) {
     const finalUrl = buildFinalUrl()
 
     try {
-      // 1️⃣ validar broker en backend
-      await validarBroker({
-        url: finalUrl,
-        usuario: form.usuario,
-        contrasena: form.contrasena
-      })
 
       // 2️⃣ guardar en la base de datos
       await guardarConfigBroker({

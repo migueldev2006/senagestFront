@@ -4,7 +4,6 @@ import { Button, Input } from "@heroui/react";
 import * as XLSX from "xlsx";
 import { fetchAllStoredRecords } from "@/utils/psiculturaData";
 
-
 interface Props {
   onClose: () => void;
   userName: string;

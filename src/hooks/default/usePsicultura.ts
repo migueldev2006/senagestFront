@@ -108,15 +108,15 @@ export function usePiscicultura(id?: number) {
     }
   }, []);
 
-  const validarBroker = useCallback(async (data: any) => {
-    setLoading(true);
-    try {
-      const res = await axiosAPI.post('/psicultura/validar', data);
-      return res.data;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // const validarBroker = useCallback(async (data: any) => {
+  //   setLoading(true);
+  //   try {
+  //     const res = await axiosAPI.post('/psicultura/validar', data);
+  //     return res.data;
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -140,10 +140,12 @@ export function usePiscicultura(id?: number) {
       const raw = message.toString();
       const now = Date.now();
       if (now - lastPayloadTs.current < 150) {}
+      if (now - lastPayloadTs.current < 150) {}
       lastPayloadTs.current = now;
 
       let parsed: any = raw;
       try { parsed = JSON.parse(raw); } catch {}
+   
 
       let payloadVal: string | null = null;
       if (typeof parsed === 'object') {
@@ -161,10 +163,12 @@ export function usePiscicultura(id?: number) {
         const infos = await obtenerInfo();
         if (!infos) return;
 
+
         const estado = await obtenerEstado(id);
         if (estado) {
           if (estado.estadoActual === 'manual') {
             await obtenerHistorial(id);
+
           }
           const newInfo = await obtenerInfo();
           setInfo(newInfo);
@@ -177,6 +181,7 @@ export function usePiscicultura(id?: number) {
     client.on('message', handleMessage);
 
     return () => {
+      try { client.removeListener('message', handleMessage); } catch {}
       try { client.removeListener('message', handleMessage); } catch {}
       clientRef.current = null;
     };
@@ -232,7 +237,7 @@ export function usePiscicultura(id?: number) {
     cambiarEstado,
     setHistorial,
     guardarConfigBroker,
-    validarBroker,
+    // validarBroker,
     isConnectedMQTT,
     realtimeSignals,
   };
