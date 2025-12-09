@@ -77,6 +77,36 @@ export function usePiscicultura(id?: number) {
       setLoading(false);
     }
   }, []);
+
+  const obtenerConfigsBroker = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.get('/psicultura/broker/config/list');
+      return res.data.configs;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const actualizarConfigBroker = useCallback(async (id: number, data: any) => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.put(`/psicultura/broker/config/${id}`, data);
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const eliminarConfigBroker = useCallback(async (id: number) => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.delete(`/psicultura/broker/config/${id}`);
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
   // ===========================================================
 
   const actualizarTimer = useCallback(async (idParam: number | null, data: any) => {
@@ -219,7 +249,10 @@ export function usePiscicultura(id?: number) {
   // -------------------------------
   return {
     validarBroker,
-    guardarConfigBroker,   // ← ← ← SOLO ESTO ES NUEVO
+    guardarConfigBroker,
+    obtenerConfigsBroker,
+    actualizarConfigBroker,
+    eliminarConfigBroker,
     actualizarTimer,
     cambiarEstado,
     obtenerEstado,

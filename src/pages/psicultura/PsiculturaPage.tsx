@@ -15,7 +15,6 @@ import PisciculturaTable from "./components/PsiculturaTable";
 import {  publish } from "@/broker/mqttClient";
 import { fetchAllStoredRecords } from "@/utils/psiculturaData";
 import BrokerStateChart from "./components/BrokerStateChart";
-import { MqttClient } from "mqtt";
 
 export default function PisciculturaPage() {
   const { profile } = useProfile();
@@ -145,17 +144,23 @@ export default function PisciculturaPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <CustomButton onPress={() => { setActiveForm("reportes"); onOpen(); }}>Reportes</CustomButton>
         <CustomButton onPress={() => { setActiveForm("timer"); onOpen(); }}>Configurar Tiempo</CustomButton>
-        <CustomButton onPress={() => { setActiveForm("broker"); onOpen(); }}>Configuración Broker</CustomButton>
+        <CustomButton onPress={() => { setActiveForm("broker"); onOpen(); }}>Gestionar Broker</CustomButton>
       </div>
 
       <CustomModal
         title={
           activeForm === "timer" ? "Configurar Timer" :
-          activeForm === "broker" ? "Configuración del Broker" : "Reporte Piscicultura"
+          activeForm === "broker" ? "Gestionar Broker" : "Reporte Piscicultura"
         }
         isOpen={isOpen}
         onOpenChange={onOpenChange}
       >
+        <button
+          onClick={() => onOpenChange()}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+        >
+          ×
+        </button>
         {activeForm === "timer" && (
           <ConfigTimerForm
             onClose={async () => {
@@ -164,7 +169,7 @@ export default function PisciculturaPage() {
             }}
           />
         )}
-        {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
+        {activeForm === "broker" && <ConfigBrokerForm />}
         {activeForm === "reportes" && <ReportDownloader onClose={onOpenChange} userName={userFullName} />}
       </CustomModal>
 

@@ -66,3 +66,17 @@ export const publish = (topic: string, payload: string) => {
     if (err) console.error("Error publicando MQTT", err);
   });
 };
+
+export const subscribe = (topic: string, callback?: (topic: string, message: Buffer) => void) => {
+  if (!client || !client.connected) return console.warn("No hay cliente MQTT conectado o no está conectado");
+  try {
+    client.subscribe(topic, { qos: 0 }, (err) => {
+      if (err) console.error("Error suscribiéndose MQTT", err);
+    });
+    if (callback) {
+      client.on("message", callback);
+    }
+  } catch (err) {
+    console.error("Error en subscribe:", err);
+  }
+};
