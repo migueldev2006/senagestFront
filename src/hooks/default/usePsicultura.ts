@@ -1,15 +1,15 @@
 // File: src/hooks/default/usePiscicultura.ts
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { axiosAPI } from '@/api/axiosAPI';
-import { getClient } from '@/broker/mqttClient';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { axiosAPI } from "@/api/axiosAPI";
+import { getClient } from "@/broker/mqttClient";
 
 type PsiculturaInfo = any;
 type HistorialItem = any;
 
 export function usePiscicultura(id?: number) {
   const [loading, setLoading] = useState(false);
-  const [historial, setHistorial] = useState<HistorialItem[]>([]);
   const [info, setInfo] = useState<PsiculturaInfo | null>(null);
+  const [historial, setHistorial] = useState<HistorialItem[]>([]);
   const [isConnectedMQTT, setIsConnectedMQTT] = useState(false);
   const [realtimeSignals, setRealtimeSignals] = useState<any[]>([]);
   const bloqueadoRef = useRef(false);
@@ -23,7 +23,24 @@ export function usePiscicultura(id?: number) {
   const obtenerInfo = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axiosAPI.get('/psicultura/info');
+      const res = await axiosAPI.get("/psicultura/info");
+      const data = res.data && res.data.length > 0 ? res.data[0] : null;
+      setInfo(data);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const obtenerData = async () => {
+  const { data } = await axiosAPI.get(`/psicultura/data/${id}`);
+  return data;
+};
+
+  const obtenerHistorialInfo = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.get("/psicultura/historial");
       const data = res.data && res.data.length > 0 ? res.data[0] : null;
       setInfo(data);
       return data;
@@ -55,23 +72,55 @@ export function usePiscicultura(id?: number) {
     }
   }, []);
 
-  const validarBroker = useCallback(async (data: any) => {
-    setLoading(true);
-    try {
-      const res = await axiosAPI.post('/psicultura/validar', data);
-      return res.data;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const actualizarTimer = useCallback(
+    async (idParam: number | null, data: any) => {
+      setLoading(true);
+      try {
+        const idPath = idParam == null ? "null" : String(idParam);
+        const res = await axiosAPI.post(`/psicultura/${idPath}/timer`, data);
 
-  // ===========================================================
-  // ✅ AQUI AGREGO guardarConfigBroker SIN MODIFICAR NADA MÁS
-  // ===========================================================
+        await obtenerInfo();
+        if (res.data?.id) await obtenerHistorial(res.data.id);
+
+        return res;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [obtenerHistorial, obtenerInfo]
+  );
+
+  const cambiarEstado = useCallback(
+    async (psiculturaId: number, estado: boolean, manual = true) => {
+      setLoading(true);
+      try {
+
+        const res = await axiosAPI.post(
+          `/psicultura/${psiculturaId}/manual`,
+          {
+            estado: estado,
+            manual:true
+          }
+        );
+
+        if (manual) {
+          await obtenerHistorial(psiculturaId);
+        } else {
+          await obtenerInfo();
+        }
+        console.log("⚡ cambiarEstado() → respuesta raw:", res.data);
+        return res;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [obtenerHistorial, obtenerInfo]
+  );
+
   const guardarConfigBroker = useCallback(async (form: any) => {
     setLoading(true);
     try {
-      const res = await axiosAPI.post('/psicultura/broker/config/save', form);
+      const res = await axiosAPI.post("/psicultura/broker/config/save", form);
       return res.data;
     } finally {
       setLoading(false);
@@ -91,7 +140,7 @@ export function usePiscicultura(id?: number) {
   const actualizarConfigBroker = useCallback(async (id: number, data: any) => {
     setLoading(true);
     try {
-      const res = await axiosAPI.put(`/psicultura/broker/config/${id}`, data);
+      const res = await axiosAPI.put(`/psicultura/broker/config/update/${id}`, data);
       return res.data;
     } finally {
       setLoading(false);
@@ -109,42 +158,16 @@ export function usePiscicultura(id?: number) {
   }, []);
   // ===========================================================
 
-  const actualizarTimer = useCallback(async (idParam: number | null, data: any) => {
+  const validarBroker = useCallback(async (data: any) => {
     setLoading(true);
     try {
-      const idPath = idParam == null ? 'null' : String(idParam);
-      const res = await axiosAPI.patch(`/psicultura/${idPath}/timer`, data);
-      await obtenerInfo();
-      if (res.data?.id) await obtenerHistorial(res.data.id);
-      return res;
+      const res = await axiosAPI.post('/psicultura/validar', data);
+      return res.data;
     } finally {
       setLoading(false);
     }
-  }, [obtenerHistorial, obtenerInfo]);
+  }, []);
 
-  const cambiarEstado = useCallback(async (psiculturaId: number, estado: boolean, manual = true) => {
-    setLoading(true);
-    try {
-      const res = await axiosAPI.patch(`/psicultura/${psiculturaId}/estado`, {
-        activo: estado,
-        manual,
-      });
-      if (manual && res.data?.historialIdCreated) {
-        const newHist = await axiosAPI.get(`/psicultura/${psiculturaId}/historial`);
-        setHistorial(newHist.data);
-      } else {
-        const updatedInfo = await obtenerInfo();
-        if (updatedInfo && updatedInfo.id === psiculturaId) setInfo(updatedInfo);
-      }
-      return res;
-    } finally {
-      setLoading(false);
-    }
-  }, [obtenerInfo]);
-
-  // -------------------------------------
-  // MQTT subscribe logic (NO TOCADO)
-  // -------------------------------------
   useEffect(() => {
     if (!id) return;
 
@@ -152,37 +175,46 @@ export function usePiscicultura(id?: number) {
     if (!client) return;
     clientRef.current = client;
 
-    const TOPIC_SIGNALS = 'lab/diego/signals';
+    const TOPIC_SIGNALS = "lab/diego/signals";
     client.subscribe(TOPIC_SIGNALS, (err: any) => {
-      if (err) console.error('Error suscribiéndose al tópico MQTT:', err);
-      else console.log('Suscrito a:', TOPIC_SIGNALS);
+      if (err) console.error("Error suscribiéndose al tópico MQTT:", err);
+      else console.log("Suscrito a:", TOPIC_SIGNALS);
     });
 
-    client.on('connect', () => setIsConnectedMQTT(true));
-    client.on('close', () => setIsConnectedMQTT(false));
-    client.on('offline', () => setIsConnectedMQTT(false));
-    client.on('reconnect', () => setIsConnectedMQTT(false));
+    client.on("connect", () => setIsConnectedMQTT(true));
+    client.on("close", () => setIsConnectedMQTT(false));
+    client.on("offline", () => setIsConnectedMQTT(false));
+    client.on("reconnect", () => setIsConnectedMQTT(false));
 
     const handleMessage = async (topic: string, message: Buffer) => {
       const raw = message.toString();
       const now = Date.now();
-      if (now - lastPayloadTs.current < 150) {}
+      if (now - lastPayloadTs.current < 150) {
+      }
+      if (now - lastPayloadTs.current < 150) {
+      }
       lastPayloadTs.current = now;
 
       let parsed: any = raw;
-      try { parsed = JSON.parse(raw); } catch {}
+      try {
+        parsed = JSON.parse(raw);
+      } catch {}
 
       let payloadVal: string | null = null;
-      if (typeof parsed === 'object') {
+      if (typeof parsed === "object") {
         if (parsed.estado !== undefined) payloadVal = String(parsed.estado);
-        else if (parsed.s1_raw !== undefined) payloadVal = parsed.s1_raw ? '1' : '0';
+        else if (parsed.s1_raw !== undefined)
+          payloadVal = parsed.s1_raw ? "1" : "0";
       } else {
-        if (raw === '1' || raw === '0') payloadVal = raw;
-        else if (raw === 'true' || raw === 'false') payloadVal = raw === 'true' ? '1' : '0';
+        if (raw === "1" || raw === "0") payloadVal = raw;
+        else if (raw === "true" || raw === "false")
+          payloadVal = raw === "true" ? "1" : "0";
         else payloadVal = raw;
       }
 
-      setRealtimeSignals(prev => [{ topic, payload: payloadVal, raw, ts: now }, ...prev].slice(0, 50));
+      setRealtimeSignals((prev) =>
+        [{ topic, payload: payloadVal, raw, ts: now }, ...prev].slice(0, 50)
+      );
 
       try {
         const infos = await obtenerInfo();
@@ -190,27 +222,32 @@ export function usePiscicultura(id?: number) {
 
         const estado = await obtenerEstado(id);
         if (estado) {
-          if (estado.estadoActual === 'manual') {
+          if (estado.estadoActual === "manual") {
             await obtenerHistorial(id);
           }
           const newInfo = await obtenerInfo();
           setInfo(newInfo);
         }
       } catch (err) {
-        console.error('Error procesando payload MQTT en frontend', err);
+        console.error("Error procesando payload MQTT en frontend", err);
       }
     };
 
-    client.on('message', handleMessage);
+    client.on("message", handleMessage);
 
     return () => {
-      try { client.removeListener('message', handleMessage); } catch {}
+      try {
+        client.removeListener("message", handleMessage);
+      } catch {}
+      try {
+        client.removeListener("message", handleMessage);
+      } catch {}
       clientRef.current = null;
     };
   }, [id, obtenerHistorial, obtenerEstado, obtenerInfo]);
 
   // -------------------------------
-  // Polling sincronización (NO TOCADO)
+  // Polling periódico (5s) para automático
   // -------------------------------
   useEffect(() => {
     if (!id) return;
@@ -219,18 +256,26 @@ export function usePiscicultura(id?: number) {
       if (pollRef.current) window.clearInterval(pollRef.current);
       pollRef.current = window.setInterval(async () => {
         if (bloqueadoRef.current) return;
+
         try {
           const currentInfo = await obtenerInfo();
           if (!currentInfo) return;
+          if (currentInfo.estadoActual !== "automatico") return;
 
-          if (currentInfo.estadoActual === 'automatico') {
-            const estado = await obtenerEstado(currentInfo.id);
-            if (estado && estado.estado !== undefined) {
-              setInfo((prev: any) => prev ? { ...prev, estado: estado.estado, estadoActual: estado.estadoActual } : prev);
-            }
+          const estado = await obtenerEstado(currentInfo.id);
+          if (estado) {
+            setInfo((prev: any) =>
+              prev
+                ? {
+                    ...prev,
+                    estado: estado.estado,
+                    estadoActual: estado.estadoActual,
+                  }
+                : prev
+            );
           }
         } catch (err) {
-          console.error('Error en polling psicultura', err);
+          console.error("Error en polling psicultura", err);
         }
       }, 5000);
     };
@@ -242,13 +287,13 @@ export function usePiscicultura(id?: number) {
         pollRef.current = null;
       }
     };
-  }, [id, obtenerEstado, obtenerInfo]);
+  }, [id, obtenerInfo, obtenerEstado]);
 
   // -------------------------------
-  // Public API (AGREGO EL NUEVO)
+  // API pública del hook
   // -------------------------------
   return {
-    validarBroker,
+
     guardarConfigBroker,
     obtenerConfigsBroker,
     actualizarConfigBroker,
@@ -259,11 +304,14 @@ export function usePiscicultura(id?: number) {
     obtenerHistorial,
     obtenerInfo,
     info,
+    validarBroker,
     historial,
-    realtimeSignals,
-    isConnectedMQTT,
     loading,
-    setHistorial,
     bloqueadoRef,
+    obtenerData,
+    setHistorial,
+    obtenerHistorialInfo,
+    isConnectedMQTT,
+    realtimeSignals,
   };
 }
