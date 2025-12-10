@@ -15,7 +15,7 @@ export default function ConfigBrokerForm() {
     name: "",
     url: "",
     puerto: "",
-    protocolo: "websockets" as "mqtt" | "websockets",
+    protocolo: "mqtt" as "mqtt" | "mqtts" | "ws" | "wss",
     usuario: "",
     contrasena: "",
     base_topic: ""
@@ -38,7 +38,7 @@ export default function ConfigBrokerForm() {
     name: "",
     url: "",
     puerto: "",
-    protocolo: "websockets" as "mqtt" | "websockets",
+    protocolo: "mqtt" as "mqtt" | "mqtts" | "ws" | "wss",
     usuario: "",
     contrasena: "",
     base_topic: ""
@@ -73,15 +73,21 @@ export default function ConfigBrokerForm() {
   }
 
   // Construimos la URL final según el protocolo
-  const buildFinalUrl = (config: { url: string; port: string | number; protocol: "mqtt" | "websockets" }) => {
+  const buildFinalUrl = (config: { url: string; port: string | number; protocol: "mqtt" | "mqtts" | "ws" | "wss" }) => {
     if (!config.port) throw new Error("Puerto no proporcionado")
     const puerto = String(config.port).trim()
     if (!puerto) throw new Error("Puerto inválido")
 
     if (config.protocol === "mqtt") {
+      return `mqtt://${config.url}:${puerto}`
+    } else if (config.protocol === "mqtts") {
       return `mqtts://${config.url}:${puerto}`
-    } else {
+    } else if (config.protocol === "ws") {
+      return `ws://${config.url}:${puerto}/mqtt`
+    } else if (config.protocol === "wss") {
       return `wss://${config.url}:${puerto}/mqtt`
+    } else {
+      throw new Error("Protocolo no soportado")
     }
   }
 
@@ -132,7 +138,7 @@ export default function ConfigBrokerForm() {
   }
 
   const handlePublishConfig = (config: any) => {
-    const finalUrl = buildFinalUrl({ url: config.url, port: config.port, protocol: config.protocol || "websockets" })
+    const finalUrl = buildFinalUrl({ url: config.url, port: config.port, protocol: config.protocol || "mqtt" })
     try {
       disconnectBroker()
       const c = connectBroker({
@@ -185,7 +191,7 @@ export default function ConfigBrokerForm() {
       name: config.name || "",
       url: config.url,
       puerto: String(config.port),
-      protocolo: config.protocol || "websockets",
+      protocolo: config.protocol || "mqtt",
       usuario: config.username,
       contrasena: config.password,
       base_topic: config.base_topic || ""
@@ -267,7 +273,7 @@ export default function ConfigBrokerForm() {
         name: "",
         url: "",
         puerto: "",
-        protocolo: "websockets",
+        protocolo: "mqtt",
         usuario: "",
         contrasena: "",
         base_topic: ""
@@ -458,10 +464,12 @@ export default function ConfigBrokerForm() {
               label="Protocolo"
               placeholder="Selecciona el protocolo"
               selectedKeys={[form.protocolo]}
-              onSelectionChange={(keys) => setForm({ ...form, protocolo: Array.from(keys)[0] as "mqtt" | "websockets" })}
+              onSelectionChange={(keys) => setForm({ ...form, protocolo: Array.from(keys)[0] as "mqtt" | "mqtts" | "ws" | "wss" })}
             >
               <SelectItem key="mqtt">MQTT</SelectItem>
-              <SelectItem key="websockets">WebSockets</SelectItem>
+              <SelectItem key="mqtts">MQTT (TLS)</SelectItem>
+              <SelectItem key="ws">WebSockets</SelectItem>
+              <SelectItem key="wss">WebSockets (TLS)</SelectItem>
             </Select>
 
             <Input
