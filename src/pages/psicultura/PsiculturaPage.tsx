@@ -220,6 +220,12 @@ const refrescarToggle = (registros: any[]) => {
         isOpen={isOpen}
         onOpenChange={onOpenChange}
       >
+        <button
+          onClick={() => onOpenChange()}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+        >
+          ×
+        </button>
         {activeForm === "timer" && (
           <ConfigTimerForm
             onClose={async () => {
@@ -228,11 +234,8 @@ const refrescarToggle = (registros: any[]) => {
             }}
           />
         )}
-        {activeForm === "broker" && <ConfigBrokerForm onClose={onOpenChange} />}
-
-        {activeForm === "reportes" && (
-          <ReportDownloader onClose={onOpenChange} userName={userFullName} />
-        )}
+        {activeForm === "broker" && <ConfigBrokerForm />}
+        {activeForm === "reportes" && <ReportDownloader onClose={onOpenChange} userName={userFullName} />}
       </CustomModal>
 
       <div className="flex justify-center mt-10">

@@ -127,15 +127,46 @@ export function usePiscicultura(id?: number) {
     }
   }, []);
 
-  // const validarBroker = useCallback(async (data: any) => {
-  //   setLoading(true);
-  //   try {
-  //     const res = await axiosAPI.post('/psicultura/validar', data);
-  //     return res.data;
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, []);
+  const obtenerConfigsBroker = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.get('/psicultura/broker/config/list');
+      return res.data.configs;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const actualizarConfigBroker = useCallback(async (id: number, data: any) => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.put(`/psicultura/broker/config/update/${id}`, data);
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const eliminarConfigBroker = useCallback(async (id: number) => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.delete(`/psicultura/broker/config/${id}`);
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  // ===========================================================
+
+  const validarBroker = useCallback(async (data: any) => {
+    setLoading(true);
+    try {
+      const res = await axiosAPI.post('/psicultura/validar', data);
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -262,18 +293,23 @@ export function usePiscicultura(id?: number) {
   // API pública del hook
   // -------------------------------
   return {
+
+    guardarConfigBroker,
+    obtenerConfigsBroker,
+    actualizarConfigBroker,
+    eliminarConfigBroker,
+    actualizarTimer,
+    cambiarEstado,
+    obtenerEstado,
+    obtenerHistorial,
+    obtenerInfo,
     info,
+    validarBroker,
     historial,
     loading,
     bloqueadoRef,
-    obtenerInfo,
-    obtenerHistorial,
-    obtenerEstado,
     obtenerData,
-    actualizarTimer,
-    cambiarEstado,
     setHistorial,
-    guardarConfigBroker,
     obtenerHistorialInfo,
     isConnectedMQTT,
     realtimeSignals,
