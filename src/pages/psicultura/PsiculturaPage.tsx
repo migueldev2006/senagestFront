@@ -1,4 +1,4 @@
-// File: src/pages/piscicultura/PisciculturaPage.tsx
+
 import PageTitle from "@/components/atoms/PageTitle";
 import CustomCard from "@/components/atoms/Card";
 import { Fish, Wheat, BarChart2 } from "lucide-react";
@@ -21,7 +21,6 @@ export default function PisciculturaPage() {
   >(null);
   const [isOn, setIsOn] = useState(false);
   const [registrosTabla, setRegistrosTabla] = useState<any[]>([]);
-  console.log("👀 registrosTabla que llegan al componente:", registrosTabla);
 
   const { profile } = useProfile();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
