@@ -31,6 +31,12 @@ export function usePiscicultura(id?: number) {
       setLoading(false);
     }
   }, []);
+
+  const obtenerData = async () => {
+  const { data } = await axiosAPI.get(`/psicultura/data/${id}`);
+  return data;
+};
+
   const obtenerHistorialInfo = useCallback(async () => {
     setLoading(true);
     try {
@@ -263,6 +269,7 @@ export function usePiscicultura(id?: number) {
     obtenerInfo,
     obtenerHistorial,
     obtenerEstado,
+    obtenerData,
     actualizarTimer,
     cambiarEstado,
     setHistorial,
