@@ -2,10 +2,10 @@ import { usePiscicultura } from "@/hooks/default/usePsicultura"
 import { Button, Form, Input, Card, CardBody, CardHeader, Select, SelectItem } from "@heroui/react"
 import { useState, useEffect } from "react"
 import { addToast } from "@heroui/toast"
-import { connectBroker, disconnectBroker, publish, subscribe, unsubscribe, getConnectionStatus, BrokerProtocol } from "@/broker/mqttClient"
+import { connectBroker, disconnectBroker, publish, subscribe, unsubscribe, getConnectionStatus } from "@/broker/mqttClient"
 import { useDisclosure } from "@heroui/modal"
 import CustomModal from "@/components/organisms/CustomModal"
-import axiosAPI from "@/api/axiosAPI"
+import { axiosAPI } from "@/api/axiosAPI"
 
 export default function ConfigBrokerForm() {
   const { validarBroker, guardarConfigBroker, obtenerConfigsBroker, actualizarConfigBroker, loading } = usePiscicultura()
@@ -15,7 +15,7 @@ export default function ConfigBrokerForm() {
     name: "",
     url: "",
     puerto: "",
-    protocolo: BrokerProtocol.WEBSOCKETS,
+    protocolo: "websockets" as "mqtt" | "websockets",
     usuario: "",
     contrasena: "",
     base_topic: ""
@@ -38,7 +38,7 @@ export default function ConfigBrokerForm() {
     name: "",
     url: "",
     puerto: "",
-    protocolo: BrokerProtocol.WEBSOCKETS,
+    protocolo: "websockets" as "mqtt" | "websockets",
     usuario: "",
     contrasena: "",
     base_topic: ""
@@ -59,11 +59,13 @@ export default function ConfigBrokerForm() {
 
   const validate = () => {
     const newErrors = {
+      name: form.name.trim() ? "" : "El nombre es obligatorio",
       url: form.url.trim() ? "" : "La URL es obligatoria",
       puerto: form.puerto.trim() ? "" : "El puerto es obligatorio",
-      usuario: form.usuario.trim() ? "" : "El usuario es obligatorio",
-      contrasena: form.contrasena.trim() ? "" : "La contraseña es obligatoria",
-      topic: form.topic.trim() ? "" : "El topic es obligatorio",
+      protocolo: "",
+      usuario: "",
+      contrasena: "",
+      base_topic: form.base_topic.trim() ? "" : "El topic es obligatorio",
     }
 
     setErrors(newErrors)
@@ -71,12 +73,12 @@ export default function ConfigBrokerForm() {
   }
 
   // Construimos la URL final según el protocolo
-  const buildFinalUrl = (config: { url: string; port: string | number; protocol: BrokerProtocol }) => {
+  const buildFinalUrl = (config: { url: string; port: string | number; protocol: "mqtt" | "websockets" }) => {
     if (!config.port) throw new Error("Puerto no proporcionado")
     const puerto = String(config.port).trim()
     if (!puerto) throw new Error("Puerto inválido")
 
-    if (config.protocol === BrokerProtocol.MQTT) {
+    if (config.protocol === "mqtt") {
       return `mqtts://${config.url}:${puerto}`
     } else {
       return `wss://${config.url}:${puerto}/mqtt`
@@ -130,8 +132,7 @@ export default function ConfigBrokerForm() {
   }
 
   const handlePublishConfig = (config: any) => {
-    const configId = `${config.url}-${config.port}`
-    const finalUrl = buildFinalUrl({ url: config.url, port: config.port })
+    const finalUrl = buildFinalUrl({ url: config.url, port: config.port, protocol: config.protocol || "websockets" })
     try {
       disconnectBroker()
       const c = connectBroker({
@@ -166,19 +167,28 @@ export default function ConfigBrokerForm() {
     }
   }
 
-  const handleCancelConfig = (config: any) => {
-    disconnectBroker()
-    addToast({ title: "Conexión cancelada", color: "warning" })
+  const handleCancelConfig = async (config: any) => {
+    try {
+      await axiosAPI.post(`/psicultura/broker/config/disconnect/${config.id}`);
+      addToast({ title: "Conexión cancelada en backend", color: "warning" });
+    } catch (error) {
+      console.error("Error desconectando del backend:", error);
+      addToast({ title: "Error al desconectar del backend", color: "danger" });
+    }
+    disconnectBroker();
+    addToast({ title: "Conexión cancelada en frontend", color: "warning" });
   }
 
   const handleEditConfig = (config: any) => {
     setEditingConfig(config)
     setEditForm({
+      name: config.name || "",
       url: config.url,
       puerto: String(config.port),
+      protocolo: config.protocol || "websockets",
       usuario: config.username,
       contrasena: config.password,
-      topic: config.topic || ""
+      base_topic: config.base_topic || ""
     })
   }
 
@@ -217,7 +227,7 @@ export default function ConfigBrokerForm() {
       return
     }
 
-    const finalUrl = buildFinalUrl({ url: form.url, port: form.puerto })
+    const finalUrl = buildFinalUrl({ url: form.url, port: form.puerto, protocol: form.protocolo })
 
     try {
       // 1️⃣ validar broker en backend
@@ -229,11 +239,13 @@ export default function ConfigBrokerForm() {
 
       // 2️⃣ guardar en la base de datos
       await guardarConfigBroker({
+        name: form.name,
         url: form.url,
         port: form.puerto,
+        protocol: form.protocolo,
         username: form.usuario,
         password: form.contrasena,
-        topic: form.topic
+        base_topic: form.base_topic
       })
 
       addToast({ title: "Configuración guardada correctamente", color: "success" })
@@ -252,11 +264,13 @@ export default function ConfigBrokerForm() {
 
       // 5️⃣ resetear formulario y ocultar
       setForm({
+        name: "",
         url: "",
         puerto: "",
+        protocolo: "websockets",
         usuario: "",
         contrasena: "",
-        topic: ""
+        base_topic: ""
       })
       onFormOpenChange()
 
@@ -281,11 +295,14 @@ export default function ConfigBrokerForm() {
               {configs.map((config, index) => (
                 <Card key={index} className={`border ${config.active ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
                   <CardBody>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                     <h1 className="text-center"><strong>Nombre</strong> {config.name}</h1>
+                    <div className="max-w-4xl mx-auto p-4 bg-white rounded-lg shadow">
+                     
                       <div><strong>URL:</strong> {config.url}</div>
                       <div><strong>Puerto:</strong> {config.port}</div>
                       <div><strong>Usuario:</strong> {config.username}</div>
-                      <div><strong>Topic:</strong> {config.topic || 'N/A'}</div>
+                      <div><strong>Topic:</strong> {config.base_topic}</div>
+                      <div><strong>Protocolo:</strong> {config.protocol}</div>
                     </div>
                     {config.active && (
                       <div className="mt-2 text-green-600 font-semibold">✓ Configuración Activa</div>
@@ -370,22 +387,22 @@ export default function ConfigBrokerForm() {
             />
 
             <Input
-              label="Usuario"
+              label="Usuario (opcional)"
               value={editForm.usuario}
               onChange={(e) => setEditForm({ ...editForm, usuario: e.target.value.trim() })}
             />
 
             <Input
-              label="Contraseña"
+              label="Contraseña (opcional)"
               type="password"
               value={editForm.contrasena}
               onChange={(e) => setEditForm({ ...editForm, contrasena: e.target.value.trim() })}
             />
 
             <Input
-              label="Topic"
-              value={editForm.topic}
-              onChange={(e) => setEditForm({ ...editForm, topic: e.target.value.trim() })}
+              label="Topic Base"
+              value={editForm.base_topic}
+              onChange={(e) => setEditForm({ ...editForm, base_topic: e.target.value.trim() })}
               className="md:col-span-2"
             />
           </div>
@@ -410,6 +427,15 @@ export default function ConfigBrokerForm() {
         <Form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
+              label="Nombre"
+              placeholder="ej: Configuración Principal"
+              value={form.name}
+              isInvalid={!!errors.name}
+              errorMessage={errors.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value.trim() })}
+            />
+
+            <Input
               label="Host (sin protocolo)"
               placeholder="ej: 3f187645294a400cbe2d87a2ec16ec53.s1.eu.hivemq.cloud"
               value={form.url}
@@ -427,6 +453,16 @@ export default function ConfigBrokerForm() {
               errorMessage={errors.puerto}
               onChange={(e) => setForm({ ...form, puerto: e.target.value.trim() })}
             />
+
+            <Select
+              label="Protocolo"
+              placeholder="Selecciona el protocolo"
+              selectedKeys={[form.protocolo]}
+              onSelectionChange={(keys) => setForm({ ...form, protocolo: Array.from(keys)[0] as "mqtt" | "websockets" })}
+            >
+              <SelectItem key="mqtt">MQTT</SelectItem>
+              <SelectItem key="websockets">WebSockets</SelectItem>
+            </Select>
 
             <Input
               label="Usuario"
@@ -446,11 +482,11 @@ export default function ConfigBrokerForm() {
             />
 
             <Input
-              label="Topic"
-              value={form.topic}
-              isInvalid={!!errors.topic}
-              errorMessage={errors.topic}
-              onChange={(e) => setForm({ ...form, topic: e.target.value.trim() })}
+              label="Topic Base"
+              value={form.base_topic}
+              isInvalid={!!errors.base_topic}
+              errorMessage={errors.base_topic}
+              onChange={(e) => setForm({ ...form, base_topic: e.target.value.trim() })}
               className="md:col-span-2"
             />
           </div>
