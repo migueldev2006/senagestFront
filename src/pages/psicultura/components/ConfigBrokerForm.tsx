@@ -34,6 +34,9 @@ export default function ConfigBrokerForm() {
   const [configs, setConfigs] = useState<any[]>([])
 
   const [editingConfig, setEditingConfig] = useState<any>(null)
+  const [activeAction, setActiveAction] = useState<{[key: number]: 'publish' | 'subscribe' | null}>({})
+  const [lastPublished, setLastPublished] = useState<{[key: number]: string}>({})
+  const [subscribedTopics, setSubscribedTopics] = useState<{[key: number]: string}>({})
   const [editForm, setEditForm] = useState({
     name: "",
     url: "",
@@ -55,7 +58,24 @@ export default function ConfigBrokerForm() {
       }
     }
     loadConfigs()
+
+    // Cargar estados persistentes
+    const savedPublished = localStorage.getItem('lastPublished');
+    if (savedPublished) setLastPublished(JSON.parse(savedPublished));
+
+    const savedSubscribed = localStorage.getItem('subscribedTopics');
+    if (savedSubscribed) setSubscribedTopics(JSON.parse(savedSubscribed));
   }, [obtenerConfigsBroker])
+
+  // Persistir lastPublished
+  useEffect(() => {
+    localStorage.setItem('lastPublished', JSON.stringify(lastPublished));
+  }, [lastPublished]);
+
+  // Persistir subscribedTopics
+  useEffect(() => {
+    localStorage.setItem('subscribedTopics', JSON.stringify(subscribedTopics));
+  }, [subscribedTopics]);
 
   const validate = () => {
     const newErrors = {
@@ -137,39 +157,57 @@ export default function ConfigBrokerForm() {
     }
   }
 
-  const handlePublishConfig = (config: any) => {
-    const finalUrl = buildFinalUrl({ url: config.url, port: config.port, protocol: config.protocol || "mqtt" })
-    try {
-      disconnectBroker()
-      const c = connectBroker({
-        url: finalUrl,
-        username: config.username,
-        password: config.password
-      })
-      c.on("connect", () => {
-        publish(config.topic, "Mensaje de prueba")
-        addToast({ title: "Mensaje publicado", color: "success" })
-        disconnectBroker()
-      })
-      c.on("error", () => {
-        addToast({ title: "Error al publicar", color: "danger" })
-        disconnectBroker()
-      })
-    } catch {
-      addToast({ title: "Error inesperado", color: "danger" })
+  const handlePublishConfig = async (config: any) => {
+    // Si ya está suscrito, no permitir publicar
+    if (activeAction[config.id] === 'subscribe') {
+      addToast({ title: "Debe cancelar la suscripción antes de publicar", color: "warning" })
+      return
     }
-  }
 
-  const handleSubscribeConfig = async (config: any) => {
+    setActiveAction(prev => ({ ...prev, [config.id]: 'publish' }))
+
+    // Desconectar cualquier conexión frontend previa
+    disconnectBroker()
+
     try {
-      const response = await axiosAPI.post(`/psicultura/broker/config/subscribe/${config.id}`)
+      const response = await axiosAPI.post(`/psicultura/broker/config/publish/${config.id}`, {
+        topic: config.base_topic,
+        message: "Mensaje de prueba"
+      })
       if (response.data.ok) {
-        addToast({ title: "Suscripción exitosa", color: "success" })
+        addToast({ title: "Mensaje publicado", color: "success" })
+        setLastPublished(prev => ({ ...prev, [config.id]: config.base_topic }))
       } else {
         addToast({ title: response.data.message, color: "danger" })
       }
     } catch (error) {
+      addToast({ title: "Error al publicar", color: "danger" })
+    }
+    setActiveAction(prev => ({ ...prev, [config.id]: null }))
+  }
+
+  const handleSubscribeConfig = async (config: any) => {
+    // Si ya está publicando, no permitir suscribirse
+    if (activeAction[config.id] === 'publish') {
+      addToast({ title: "Debe esperar a que termine la publicación antes de suscribirse", color: "warning" })
+      return
+    }
+
+    setActiveAction(prev => ({ ...prev, [config.id]: 'subscribe' }))
+
+    try {
+      const response = await axiosAPI.post(`/psicultura/broker/config/subscribe/${config.id}`)
+      if (response.data.ok) {
+        addToast({ title: "Suscripción exitosa", color: "success" })
+        setSubscribedTopics(prev => ({ ...prev, [config.id]: config.base_topic }))
+        // Mantener la suscripción activa hasta que se cancele
+      } else {
+        addToast({ title: response.data.message, color: "danger" })
+        setActiveAction(prev => ({ ...prev, [config.id]: null }))
+      }
+    } catch (error) {
       addToast({ title: "Error al suscribirse", color: "danger" })
+      setActiveAction(prev => ({ ...prev, [config.id]: null }))
     }
   }
 
@@ -183,6 +221,14 @@ export default function ConfigBrokerForm() {
     }
     disconnectBroker();
     addToast({ title: "Conexión cancelada en frontend", color: "warning" });
+
+    // Resetear la acción activa y limpiar estados
+    setActiveAction(prev => ({ ...prev, [config.id]: null }));
+    setSubscribedTopics(prev => {
+      const newState = { ...prev };
+      delete newState[config.id];
+      return newState;
+    });
   }
 
   const handleEditConfig = (config: any) => {
@@ -260,15 +306,7 @@ export default function ConfigBrokerForm() {
       const updatedConfigs = await obtenerConfigsBroker()
       setConfigs(updatedConfigs)
 
-      // 4️⃣ conectar broker desde frontend
-      disconnectBroker()
-      connectBroker({
-        url: finalUrl,
-        username: form.usuario,
-        password: form.contrasena
-      })
-
-      // 5️⃣ resetear formulario y ocultar
+      // 4️⃣ resetear formulario y ocultar
       setForm({
         name: "",
         url: "",
@@ -313,6 +351,21 @@ export default function ConfigBrokerForm() {
                     {config.active && (
                       <div className="mt-2 text-green-600 font-semibold">✓ Configuración Activa</div>
                     )}
+                    {activeAction[config.id] && (
+                      <div className="mt-2 text-blue-600 font-semibold">
+                        {activeAction[config.id] === 'publish' ? '📤 Publicando...' : '📡 Suscrito'}
+                      </div>
+                    )}
+                    {subscribedTopics[config.id] && (
+                      <div className="mt-2 text-green-600 font-semibold">
+                        📡 Suscrito a: {subscribedTopics[config.id]}
+                      </div>
+                    )}
+                    {lastPublished[config.id] && !activeAction[config.id] && (
+                      <div className="mt-2 text-purple-600 font-semibold">
+                        📤 Último publicado en: {lastPublished[config.id]}
+                      </div>
+                    )}
                     <div className="flex gap-2 mt-4 flex-wrap">
                       <Button
                         size="sm"
@@ -325,16 +378,28 @@ export default function ConfigBrokerForm() {
                         size="sm"
                         color="secondary"
                         onPress={() => handlePublishConfig(config)}
+                        isDisabled={activeAction[config.id] === 'subscribe'}
                       >
                         Publicar
                       </Button>
-                      <Button
-                        size="sm"
-                        color="warning"
-                        onPress={() => handleSubscribeConfig(config)}
-                      >
-                        Suscribirse
-                      </Button>
+                      {activeAction[config.id] === 'subscribe' ? (
+                        <Button
+                          size="sm"
+                          color="danger"
+                          onPress={() => handleCancelConfig(config)}
+                        >
+                          Desuscribirse
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          color="warning"
+                          onPress={() => handleSubscribeConfig(config)}
+                          isDisabled={activeAction[config.id] === 'publish'}
+                        >
+                          Suscribirse
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         color="secondary"
@@ -346,6 +411,7 @@ export default function ConfigBrokerForm() {
                         size="sm"
                         color="default"
                         onPress={() => handleCancelConfig(config)}
+                        isDisabled={activeAction[config.id] !== null}
                       >
                         Cancelar
                       </Button>
