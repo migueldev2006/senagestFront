@@ -37,6 +37,7 @@ export default function PisciculturaTable({ registros, userName }: Props) {
         <TableBody>
           {registros.map((r, index) => {
             const fecha = new Date(r.fechaCreacion || r.inicio || new Date());
+            const esDelBroker = !r.inicio && !r.tiempoEncendido && !r.tiempoApagado;
 
             return (
               <TableRow key={index}>
@@ -54,11 +55,15 @@ export default function PisciculturaTable({ registros, userName }: Props) {
                 {/* Año */}
                 <TableCell>{fecha.getFullYear()}</TableCell>
 
-                {/* Encendido por */}
-                <TableCell>{r.encendidoPor || userName || "N/A"}</TableCell>
+                <TableCell>
+                  {esDelBroker
+                    ? "sistema"
+                    : r.encendidoPor || userName || "N/A"}
+                </TableCell>
 
-                {/* Apagado por */}
-                <TableCell>{r.apagadoPor || userName || "N/A"}</TableCell>
+                <TableCell>
+                  {esDelBroker ? "sistema" : r.apagadoPor || userName || "N/A"}
+                </TableCell>
 
                 {/* Modo */}
                 <TableCell>{r.modo || "auto"}</TableCell>
