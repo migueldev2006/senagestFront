@@ -60,23 +60,24 @@ const filas = reportes.map((r) => {
   const apagadoPor = !r.inicio ? "Sistema" : (r.apagadoPor || userName || "N/A");
 
   return [
-    diaOriginal,              
-    fechaOriginal,           
-    f.toLocaleTimeString("es-CO", { hour12: true }), 
-    f.getFullYear(),          
+    diaOriginal,
+    fechaOriginal,
+    f.toLocaleTimeString("es-CO", { hour12: true }),
+    f.getFullYear(),
     encendidoPor,
-    apagadoPor,  
-    r.modo || "auto",         
+    apagadoPor,
+    tipo,
+    r.modo || "auto",
     r.estado ? "Encendido" : "Apagado",
-    r.tiempoEncendido || "00:00:00", 
-    r.tiempoApagado || "00:00:00",   
-    r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0", 
+    r.tiempoEncendido || "00:00:00",
+    r.tiempoApagado || "00:00:00",
+    r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0",
     r.inicio
       ? new Date(r.inicio).toLocaleString("es-CO", { hour12: true })
-      : "—", 
+      : "—",
     r.fin
       ? new Date(r.fin).toLocaleString("es-CO", { hour12: true })
-      : "En curso", 
+      : "En curso",
   ];
 });
 
