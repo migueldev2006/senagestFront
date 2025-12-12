@@ -540,6 +540,15 @@ export default function ConfigBrokerForm() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
+              label="Nombre"
+              placeholder="ej: Configuración Principal"
+              value={editForm.name}
+              onChange={(e) =>
+                setEditForm({ ...editForm, name: e.target.value.trim() })
+              }
+            />
+
+            <Input
               label="Host (sin protocolo)"
               placeholder="ej: 3f187645294a400cbe2d87a2ec16ec53.s1.eu.hivemq.cloud"
               value={editForm.url}
@@ -557,6 +566,27 @@ export default function ConfigBrokerForm() {
                 setEditForm({ ...editForm, puerto: e.target.value.trim() })
               }
             />
+
+            <Select
+              label="Protocolo"
+              placeholder="Selecciona el protocolo"
+              selectedKeys={[editForm.protocolo]}
+              onSelectionChange={(keys) =>
+                setEditForm({
+                  ...editForm,
+                  protocolo: Array.from(keys)[0] as
+                    | "mqtt"
+                    | "mqtts"
+                    | "ws"
+                    | "wss",
+                })
+              }
+            >
+              <SelectItem key="mqtt">MQTT</SelectItem>
+              <SelectItem key="mqtts">MQTT (TLS)</SelectItem>
+              <SelectItem key="ws">WebSockets</SelectItem>
+              <SelectItem key="wss">WebSockets (TLS)</SelectItem>
+            </Select>
 
             <Input
               label="Usuario (opcional)"
@@ -613,120 +643,124 @@ export default function ConfigBrokerForm() {
         onOpenChange={onFormOpenChange}
       >
         <Form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Nombre"
-              placeholder="ej: Configuración Principal"
-              value={form.name}
-              isInvalid={!!errors.name}
-              errorMessage={errors.name}
-              onChange={(e) =>
-                setForm({ ...form, name: e.target.value.trim() })
-              }
-            />
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Nombre"
+                placeholder="ej: Configuración Principal"
+                value={form.name}
+                isInvalid={!!errors.name}
+                errorMessage={errors.name}
+                onChange={(e) =>
+                  setForm({ ...form, name: e.target.value.trim() })
+                }
+              />
 
-            <Input
-              label="Host (sin protocolo)"
-              placeholder="ej: 3f187645294a400cbe2d87a2ec16ec53.s1.eu.hivemq.cloud"
-              value={form.url}
-              isInvalid={!!errors.url}
-              errorMessage={errors.url}
-              onChange={(e) => setForm({ ...form, url: e.target.value.trim() })}
-            />
+              <Input
+                label="Host (sin protocolo)"
+                placeholder="ej: 3f187645294a400cbe2d87a2ec16ec53.s1.eu.hivemq.cloud"
+                value={form.url}
+                isInvalid={!!errors.url}
+                errorMessage={errors.url}
+                onChange={(e) =>
+                  setForm({ ...form, url: e.target.value.trim() })
+                }
+              />
 
-            <Input
-              label="Puerto"
-              type="number"
-              placeholder="ej: 8883 o 8884"
-              value={form.puerto}
-              isInvalid={!!errors.puerto}
-              errorMessage={errors.puerto}
-              onChange={(e) =>
-                setForm({ ...form, puerto: e.target.value.trim() })
-              }
-            />
+              <Input
+                label="Puerto"
+                type="number"
+                placeholder="ej: 8883 o 8884"
+                value={form.puerto}
+                isInvalid={!!errors.puerto}
+                errorMessage={errors.puerto}
+                onChange={(e) =>
+                  setForm({ ...form, puerto: e.target.value.trim() })
+                }
+              />
 
-            <Select
-              label="Protocolo"
-              placeholder="Selecciona el protocolo"
-              selectedKeys={[form.protocolo]}
-              onSelectionChange={(keys) =>
-                setForm({
-                  ...form,
-                  protocolo: Array.from(keys)[0] as
-                    | "mqtt"
-                    | "mqtts"
-                    | "ws"
-                    | "wss",
-                })
-              }
-            >
-              <SelectItem key="mqtt">MQTT</SelectItem>
-              <SelectItem key="mqtts">MQTT (TLS)</SelectItem>
-              <SelectItem key="ws">WebSockets</SelectItem>
-              <SelectItem key="wss">WebSockets (TLS)</SelectItem>
-            </Select>
+              <Select
+                label="Protocolo"
+                placeholder="Selecciona el protocolo"
+                selectedKeys={[form.protocolo]}
+                onSelectionChange={(keys) =>
+                  setForm({
+                    ...form,
+                    protocolo: Array.from(keys)[0] as
+                      | "mqtt"
+                      | "mqtts"
+                      | "ws"
+                      | "wss",
+                  })
+                }
+              >
+                <SelectItem key="mqtt">MQTT</SelectItem>
+                <SelectItem key="mqtts">MQTT (TLS)</SelectItem>
+                <SelectItem key="ws">WebSockets</SelectItem>
+                <SelectItem key="wss">WebSockets (TLS)</SelectItem>
+              </Select>
 
-            <Input
-              label="Usuario"
-              value={form.usuario}
-              isInvalid={!!errors.usuario}
-              errorMessage={errors.usuario}
-              onChange={(e) =>
-                setForm({ ...form, usuario: e.target.value.trim() })
-              }
-            />
+              <Input
+                label="Usuario"
+                value={form.usuario}
+                isInvalid={!!errors.usuario}
+                errorMessage={errors.usuario}
+                onChange={(e) =>
+                  setForm({ ...form, usuario: e.target.value.trim() })
+                }
+              />
 
-            <Input
-              label="Contraseña"
-              type="password"
-              value={form.contrasena}
-              isInvalid={!!errors.contrasena}
-              errorMessage={errors.contrasena}
-              onChange={(e) =>
-                setForm({ ...form, contrasena: e.target.value.trim() })
-              }
-            />
+              <Input
+                label="Contraseña"
+                type="password"
+                value={form.contrasena}
+                isInvalid={!!errors.contrasena}
+                errorMessage={errors.contrasena}
+                onChange={(e) =>
+                  setForm({ ...form, contrasena: e.target.value.trim() })
+                }
+              />
 
-            <Input
-              label="Topic Base"
-              value={form.base_topic}
-              isInvalid={!!errors.base_topic}
-              errorMessage={errors.base_topic}
-              onChange={(e) =>
-                setForm({ ...form, base_topic: e.target.value.trim() })
-              }
-              className="md:col-span-2"
-            />
-          </div>
+              <Input
+                label="Topic Base"
+                value={form.base_topic}
+                isInvalid={!!errors.base_topic}
+                errorMessage={errors.base_topic}
+                onChange={(e) =>
+                  setForm({ ...form, base_topic: e.target.value.trim() })
+                }
+                className="md:col-span-2"
+              />
+            </div>
 
-          <div className="flex justify-end gap-4 mt-6">
-            <Button
-              type="button"
-              color="danger"
-              variant="light"
-              onPress={() => onFormOpenChange()}
-            >
-              Cerrar Modal
-            </Button>
+            <div className="flex justify-end gap-4 mt-6">
+              <Button
+                type="button"
+                color="danger"
+                variant="light"
+                onPress={() => onFormOpenChange()}
+              >
+                Cerrar Modal
+              </Button>
 
-            <Button
-              type="button"
-              color="default"
-              variant="light"
-              onPress={handleTestConnection}
-            >
-              Probar conexión
-            </Button>
+              <Button
+                type="button"
+                color="default"
+                variant="light"
+                onPress={handleTestConnection}
+              >
+                Probar conexión
+              </Button>
 
-            <Button
-              type="submit"
-              color="success"
-              className="text-white"
-              isLoading={loading}
-            >
-              Guardar y Conectar
-            </Button>
+              <Button
+                type="submit"
+                color="success"
+                className="text-white"
+                isLoading={loading}
+              >
+                Guardar y Conectar
+              </Button>
+            </div>
           </div>
         </Form>
       </CustomModal>
