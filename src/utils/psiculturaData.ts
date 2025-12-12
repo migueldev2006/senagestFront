@@ -1,4 +1,4 @@
-import { axiosAPI } from '@/api/axiosAPI';
+import { axiosAPI } from "@/api/axiosAPI";
 
 function tryExtractArray(data: any): any[] {
   if (!data) return [];
@@ -24,14 +24,27 @@ function normalizeRecord(r: any, endpointName?: string): any {
   const raw = r;
 
   // Determine if this record comes from external broker endpoints
-  const isFromBroker = endpointName?.includes('broker') === true;
+  const isFromBroker = endpointName?.includes("broker") === true;
 
   // Common candidates
-  const fechaCreacion = r.fechaCreacion || r.timestamp || r.time || r.t || r.fecha || r.createdAt || r.date;
+  const fechaCreacion =
+    r.fechaCreacion ||
+    r.timestamp ||
+    r.time ||
+    r.t ||
+    r.fecha ||
+    r.createdAt ||
+    r.date;
   const inicio = r.inicio || r.start || r.startedAt;
   const fin = r.fin || r.end || r.endedAt;
 
-  const encendidoPor = r.encendidoPor || r.user || r.usuario || r.source || r.dispositivo || r.device;
+  const encendidoPor =
+    r.encendidoPor ||
+    r.user ||
+    r.usuario ||
+    r.source ||
+    r.dispositivo ||
+    r.device;
   const apagadoPor = r.apagadoPor || r.userOff || r.usuarioOff;
 
   const modo = r.modo || r.mode || r.tipo;
@@ -47,7 +60,16 @@ function normalizeRecord(r: any, endpointName?: string): any {
   const tiempoApagado = r.tiempoApagado || r.timeOff;
   const tiempoMs = r.tiempoMs || r.durationMs || r.manualMs || null;
 
-  const manual = r.manual !== undefined ? r.manual : (r.source === 'fisico' || r.source === 'device' ? true : undefined);
+  let manual = r.manual !== undefined ? r.manual : undefined;
+  if (manual === undefined && r.modo) {
+    manual = r.modo === "manual";
+  }
+  if (
+    manual === undefined &&
+    (r.source === "fisico" || r.source === "device")
+  ) {
+    manual = true;
+  }
 
   return {
     fechaCreacion: parseToISO(fechaCreacion),
@@ -61,7 +83,7 @@ function normalizeRecord(r: any, endpointName?: string): any {
     tiempoApagado,
     tiempoMs,
     manual,
-    source: isFromBroker ? 'external' : 'internal',
+    source: isFromBroker ? "external" : "internal",
     raw,
   };
 }
@@ -71,25 +93,49 @@ export async function fetchAllStoredRecords(psiculturaId?: number) {
 
   // add backend history endpoints
   try {
-    const infoRes = await axiosAPI.get('/psicultura/info');
+    const infoRes = await axiosAPI.get("/psicultura/info");
     const infoArr = Array.isArray(infoRes.data) ? infoRes.data : [];
-    const mainId = psiculturaId || (infoArr.length > 0 ? infoArr[0].id : undefined);
-    if (mainId) {
-      endpoints.push({ url: `/psicultura/${mainId}/historial`, name: 'historial' });
-      endpoints.push({ url: `/psicultura/${mainId}/datos-guardados?limite=200`, name: 'datos-guardados' });
-      endpoints.push({ url: `/psicultura/${mainId}/estadisticas-datos?horas=24`, name: 'estadisticas-datos' });
+    if (psiculturaId) {
+      // If specific psiculturaId provided, use only that
+      endpoints.push({
+        url: `/psicultura/${psiculturaId}/historial`,
+        name: "historial",
+      });
+      endpoints.push({
+        url: `/psicultura/${psiculturaId}/datos-guardados?limite=200`,
+        name: "datos-guardados",
+      });
+      endpoints.push({
+        url: `/psicultura/${psiculturaId}/estadisticas-datos?horas=24`,
+        name: "estadisticas-datos",
+      });
+    } else {
+      // If no specific id, fetch from all psicultura
+      infoArr.forEach((psic: any) => {
+        if (psic.id) {
+          endpoints.push({
+            url: `/psicultura/${psic.id}/historial`,
+            name: `historial-${psic.id}`,
+          });
+          endpoints.push({
+            url: `/psicultura/${psic.id}/datos-guardados?limite=200`,
+            name: `datos-guardados-${psic.id}`,
+          });
+          endpoints.push({
+            url: `/psicultura/${psic.id}/estadisticas-datos?horas=24`,
+            name: `estadisticas-datos-${psic.id}`,
+          });
+        }
+      });
     }
     // also generic
-    endpoints.push({ url: '/psicultura/historial', name: 'historial-generic' });
+    endpoints.push({ url: "/psicultura/historial", name: "historial-generic" });
+    endpoints.push({ url: "/psicultura/info", name: "info" });
   } catch (err) {
     // ignore
   }
 
-  // add external broker endpoints (absolute)
-  endpoints.push({ url: 'http://localhost:3000/', name: 'broker-root' });
-  endpoints.push({ url: 'http://localhost:3000/api/datos-broker', name: 'broker-api' });
-  endpoints.push({ url: `http://localhost:3000/psicultura/${psiculturaId || 1}/datos-guardados?limite=200`, name: 'broker-guardados' });
-  endpoints.push({ url: `http://localhost:3000/psicultura/${psiculturaId || 1}/estadisticas-datos?horas=24`, name: 'broker-estadisticas' });
+  // Note: External broker endpoints removed to focus on internal records
 
   const results: any[] = [];
 
@@ -97,12 +143,12 @@ export async function fetchAllStoredRecords(psiculturaId?: number) {
     endpoints.map(async (ep) => {
       try {
         const res = await axiosAPI.get(ep.url);
-        const arr = tryExtractArray(res.data) ;
+        const arr = tryExtractArray(res.data);
         if (arr.length === 0) {
           // maybe res.data itself is array-like or object
           if (Array.isArray(res.data)) {
             arr.push(...res.data);
-          } else if (res.data && typeof res.data === 'object') {
+          } else if (res.data && typeof res.data === "object") {
             // if object has registros or data handled above
             // otherwise if it seems like a single record, push it
             if (Object.keys(res.data).length > 0 && !res.data.fechaCreacion) {
@@ -112,10 +158,12 @@ export async function fetchAllStoredRecords(psiculturaId?: number) {
             }
           }
         }
-        arr.forEach((item: any) => results.push({ ...item, _endpointName: ep.name }));
+        arr.forEach((item: any) =>
+          results.push({ ...item, _endpointName: ep.name })
+        );
       } catch (err) {
         // ignore per-endpoint errors
-        console.warn('Error fetching', ep.url, err);
+        console.warn("Error fetching", ep.url, err);
       }
     })
   );
@@ -125,7 +173,7 @@ export async function fetchAllStoredRecords(psiculturaId?: number) {
   const map = new Map<string, any>();
   normalized.forEach((r) => {
     // key by fechaCreacion|inicio|fin|encendidoPor
-    const key = `${r.fechaCreacion || ''}|${r.inicio || ''}|${r.fin || ''}|${r.encendidoPor || ''}`;
+    const key = `${r.fechaCreacion || ""}|${r.inicio || ""}|${r.fin || ""}|${r.encendidoPor || ""}`;
     if (!map.has(key)) map.set(key, r);
   });
 

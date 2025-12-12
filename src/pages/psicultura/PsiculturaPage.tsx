@@ -1,4 +1,3 @@
-
 import PageTitle from "@/components/atoms/PageTitle";
 import CustomCard from "@/components/atoms/Card";
 import { Fish, Wheat, BarChart2 } from "lucide-react";
@@ -37,7 +36,7 @@ export default function PisciculturaPage() {
       const manuales = await obtenerHistorial(1);
       const datos = await obtenerData();
 
-      const datosNormalizados = datos.map((d:any) => ({
+      const datosNormalizados = datos.map((d: any) => ({
         id: d.id,
         estado: d.estado,
         modo: d.modo,
@@ -73,31 +72,30 @@ export default function PisciculturaPage() {
     }
   };
 
-const refrescarToggle = (registros: any[]) => {
-  if (!registros || registros.length === 0)
+  const refrescarToggle = (registros: any[]) => {
+    if (!registros || registros.length === 0)
+      return { estado: false, origen: null };
+
+    // MANUAL REALMENTE ABIERTO
+    const manualAbierto = registros.find(
+      (r) => r.modo === "manual" && (r.fin === null || !r.fin)
+    );
+
+    if (manualAbierto) {
+      return { estado: manualAbierto.estado === true, origen: "manual" };
+    }
+
+    // AUTOMÁTICO REALMENTE ENCENDIDO
+    const autoEncendido = registros.find(
+      (r) => r.modo === "auto" && r.estado === true
+    );
+
+    if (autoEncendido) {
+      return { estado: true, origen: "automatico" };
+    }
+
     return { estado: false, origen: null };
-
-  // MANUAL REALMENTE ABIERTO
-  const manualAbierto = registros.find(
-    (r) => r.modo === "manual" && (r.fin === null || !r.fin)
-  );
-
-  if (manualAbierto) {
-    return { estado: manualAbierto.estado === true, origen: "manual" };
-  }
-
-  // AUTOMÁTICO REALMENTE ENCENDIDO
-  const autoEncendido = registros.find(
-    (r) => r.modo === "auto" && r.estado === true
-  );
-
-  if (autoEncendido) {
-    return { estado: true, origen: "automatico" };
-  }
-
-  return { estado: false, origen: null };
-};
-
+  };
 
   // Polling actualizado
   useEffect(() => {
@@ -234,7 +232,13 @@ const refrescarToggle = (registros: any[]) => {
           />
         )}
         {activeForm === "broker" && <ConfigBrokerForm />}
-        {activeForm === "reportes" && <ReportDownloader onClose={onOpenChange} userName={userFullName} />}
+        {activeForm === "reportes" && (
+          <ReportDownloader
+            onClose={onOpenChange}
+            userName={userFullName}
+            registros={registrosTabla}
+          />
+        )}
       </CustomModal>
 
       <div className="flex justify-center mt-10">

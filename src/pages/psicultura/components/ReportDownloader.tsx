@@ -7,9 +7,14 @@ import { fetchAllStoredRecords } from "@/utils/psiculturaData";
 interface Props {
   onClose: () => void;
   userName: string;
+  registros?: any[];
 }
 
-export default function ReportDownloader({ onClose, userName }: Props) {
+export default function ReportDownloader({
+  onClose,
+  userName,
+  registros,
+}: Props) {
   const [fecha, setFecha] = useState("");
 
   const [reportes, setReportes] = useState<any[]>([]);
@@ -18,16 +23,35 @@ export default function ReportDownloader({ onClose, userName }: Props) {
     if (!fecha) return;
 
     try {
-      const combinado = await fetchAllStoredRecords();
+      const combinado = registros || (await fetchAllStoredRecords());
 
       const registrosFiltrados = combinado.filter((r: any) => {
-        const fechaCreacion = r.fechaCreacion ? new Date(r.fechaCreacion).toISOString().split("T")[0] : null;
-        const fechaInicio = r.inicio ? new Date(r.inicio).toISOString().split("T")[0] : null;
-        const fechaFin = r.fin ? new Date(r.fin).toISOString().split("T")[0] : null;
+        const fechaCreacion = r.fechaCreacion
+          ? new Date(r.fechaCreacion).toLocaleDateString("en-CA")
+          : null;
+        const fechaInicio = r.inicio
+          ? new Date(r.inicio).toLocaleDateString("en-CA")
+          : null;
+        const fechaFin = r.fin
+          ? new Date(r.fin).toLocaleDateString("en-CA")
+          : null;
+        const createdAt = r.createdAt
+          ? new Date(r.createdAt).toLocaleDateString("en-CA")
+          : null;
 
-        if (fechaCreacion === fecha || fechaInicio === fecha || fechaFin === fecha) return true;
+        if (
+          fechaCreacion === fecha ||
+          fechaInicio === fecha ||
+          fechaFin === fecha ||
+          createdAt === fecha
+        )
+          return true;
         if (fechaInicio && fechaFin) {
           if (fechaInicio <= fecha && fechaFin >= fecha) return true;
+        }
+        // Si no hay ninguna fecha, considerar como fecha actual
+        if (!fechaCreacion && !fechaInicio && !fechaFin && !createdAt) {
+          return new Date().toLocaleDateString("en-CA") === fecha;
         }
         return false;
       });
@@ -48,37 +72,46 @@ export default function ReportDownloader({ onClose, userName }: Props) {
       return;
     }
 
-const filas = reportes.map((r) => {
-  const fechaCreacion = r.fechaCreacion || r.inicio || new Date().toISOString();
-  const f = new Date(fechaCreacion);
-  const fechaOriginal = f.toISOString().split("T")[0]; 
-  const diaOriginal = fechaOriginal.split("-")[2];    
+    const filas = reportes.map((r) => {
+      const fechaCreacion =
+        r.fechaCreacion || r.inicio || new Date().toISOString();
+      const f = new Date(fechaCreacion);
+      const fechaOriginal = f.toISOString().split("T")[0];
+      const diaOriginal = fechaOriginal.split("-")[2];
 
-  
-  const tipo = r.manual === true ? "Manual" : (r.manual === false ? "Automático" : "N/A");
-  const encendidoPor = !r.inicio ? "Sistema" : (r.encendidoPor || userName || "N/A");
-  const apagadoPor = !r.inicio ? "Sistema" : (r.apagadoPor || userName || "N/A");
+      const tipo =
+        r.manual === true
+          ? "Manual"
+          : r.manual === false
+            ? "Automático"
+            : "N/A";
+      const encendidoPor = !r.inicio
+        ? "Sistema"
+        : r.encendidoPor || userName || "N/A";
+      const apagadoPor = !r.inicio
+        ? "Sistema"
+        : r.apagadoPor || userName || "N/A";
 
-  return [
-    diaOriginal,              
-    fechaOriginal,           
-    f.toLocaleTimeString("es-CO", { hour12: true }), 
-    f.getFullYear(),          
-    encendidoPor,
-    apagadoPor,  
-    r.modo || "auto",         
-    r.estado ? "Encendido" : "Apagado",
-    r.tiempoEncendido || "00:00:00", 
-    r.tiempoApagado || "00:00:00",   
-    r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0", 
-    r.inicio
-      ? new Date(r.inicio).toLocaleString("es-CO", { hour12: true })
-      : "—", 
-    r.fin
-      ? new Date(r.fin).toLocaleString("es-CO", { hour12: true })
-      : "En curso", 
-  ];
-});
+      return [
+        diaOriginal,
+        fechaOriginal,
+        f.toLocaleTimeString("es-CO", { hour12: true }),
+        f.getFullYear(),
+        encendidoPor,
+        apagadoPor,
+        r.modo || "auto",
+        r.estado ? "Encendido" : "Apagado",
+        r.tiempoEncendido || "00:00:00",
+        r.tiempoApagado || "00:00:00",
+        r.tiempoMs ? Math.floor(r.tiempoMs / 1000) : "0",
+        r.inicio
+          ? new Date(r.inicio).toLocaleString("es-CO", { hour12: true })
+          : "—",
+        r.fin
+          ? new Date(r.fin).toLocaleString("es-CO", { hour12: true })
+          : "En curso",
+      ];
+    });
 
     const data = [
       ["REPORTE DE PISCICULTURA"],
@@ -100,7 +133,7 @@ const filas = reportes.map((r) => {
         "INICIO",
         "FIN",
       ],
-      ...filas, 
+      ...filas,
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -127,7 +160,8 @@ const filas = reportes.map((r) => {
       <div className="flex items-center justify-between bg-gray-100 p-4 rounded-xl">
         <p className="text-gray-700 text-sm flex-1 pr-4">
           <h1 className="font-semibold">REPORTE MONITOREO</h1>
-          Este reporte contiene un resumen general del estado de la piscicultura.
+          Este reporte contiene un resumen general del estado de la
+          piscicultura.
         </p>
 
         <button
