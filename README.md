@@ -1,50 +1,32 @@
-# Vite & HeroUI Template
+## SENAGEST
 
-This is a template for creating applications using Vite and HeroUI (v2).
+### PASOS PARA EJECUTAR EL PROYECTO
 
-[Try it on CodeSandbox](https://githubbox.com/frontio-ai/vite-template)
-
-## Technologies Used
-
-- [Vite](https://vitejs.dev/guide/)
-- [HeroUI](https://heroui.com)
-- [Tailwind CSS](https://tailwindcss.com)
-- [Tailwind Variants](https://tailwind-variants.org)
-- [TypeScript](https://www.typescriptlang.org)
-- [Framer Motion](https://www.framer.com/motion)
-
-## How to Use
-
-To clone the project, run the following command:
+### 1. Clonar el Repositorio
 
 ```bash
-git clone https://github.com/frontio-ai/vite-template.git
+    git clone https://github.com/migueldev2006/senagestFront.git
 ```
 
-### Install dependencies
-
-You can use one of them `npm`, `yarn`, `pnpm`, `bun`, Example using `npm`:
+### 2. Debemos acceder a la carpeta donde se encuentra nuestro frontend y ejecutar el siguiente comando para instalar las dependencias:
 
 ```bash
-npm install
+    npm i --force
 ```
 
-### Run the development server
+### 3. Faltaria crear el archivo .env para la conexion con la api del backend para ello dejaremos un .env.example como base para que lo duplique en el .env, sien embargo a continuacion lo dejo:
 
 ```bash
-npm run dev
+    VITE_API_URL = 'http://localhost:3000/'
 ```
 
-### Setup pnpm (optional)
-
-If you are using `pnpm`, you need to add the following code to your `.npmrc` file:
+### 4. Ejecutamos nuestro proyecto; Nos dirijimos a la terminal de VS Code y ejecutamos el siguiente comando:
 
 ```bash
-public-hoist-pattern[]=*@heroui/*
+    npm run dev
 ```
 
-After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
+### Recordatorio
+Al proyecto no se le realizo la modificacion del dockerfile, por tanto al pasar a crear la imagen de docker es recomenadble revisar antes de ejecutar.
 
-## License
-
-Licensed under the [MIT license](https://github.com/frontio-ai/vite-template/blob/main/LICENSE).
+El proyecto solo se ejecuto en desarrollo.
