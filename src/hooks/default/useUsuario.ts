@@ -14,6 +14,7 @@ export default function useUsuario(){
     async function getUsers() {
        try{
             const {data} = await axiosAPI.get(`usuarios?page=${page}&search=${search}`);
+            console.log("📌 RAW USERS FROM BACKEND:", data);
             setTotalPages(data.totalPages);
             return data.data;
         }

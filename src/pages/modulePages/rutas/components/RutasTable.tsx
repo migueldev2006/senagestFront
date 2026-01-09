@@ -106,8 +106,8 @@ export default function PermisosTable({
                 </TableColumn>
               </TableHeader>
               <TableBody>
-                {modulo && modulo.rutas?.length ? (
-                  modulo.rutas.map((ruta: Ruta & {id: number, estado: boolean}) => (
+                {modulo && modulo.length ? (
+                  modulo.map((ruta: Ruta & {id: number, estado: boolean}) => (
                     <TableRow key={ruta.id}>
                       <TableCell>
                         <div className="flex items-center gap-4">
@@ -116,7 +116,7 @@ export default function PermisosTable({
                         </div>
                       </TableCell>
                       <TableCell>
-                        baseURL/{(modulo.nombre as string).toLowerCase()}/
+                      baseURL/{ruta.modulo?.nombre?.toLowerCase?.() ?? "sin-modulo"}/{ruta.ruta}
                         {ruta.ruta}
                       </TableCell>
                       <TableCell className="flex gap-2">

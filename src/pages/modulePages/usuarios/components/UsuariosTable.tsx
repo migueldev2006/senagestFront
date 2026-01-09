@@ -68,10 +68,22 @@ export default function UsuariosTable({
             </TableRow>
           )}
           {users?.map((user: Usuario) => {
-            const apiURL = import.meta.env.VITE_API_URL
+            const apiURL = import.meta.env.VITE_API_URL.endsWith("/")
+            ? import.meta.env.VITE_API_URL
+            : import.meta.env.VITE_API_URL + "/";
+
+            console.log("🔍 UsuariosTable → apiURL final:", apiURL);
+console.log("🔍 UsuariosTable → user.img:", user.img);
+console.log("🔍 UsuariosTable → URL completa:", `${apiURL}uploads/${user.img}`);
+
             return(
               <TableRow key={user.id}>
-                <TableCell><img src={`${apiURL}uploads/${user.img}`} alt="Foto de perfil" className="w-10 rounded-full aspect-square" /></TableCell>
+                <TableCell><img
+  src={`${apiURL}uploads/${user.img}`}
+  alt="Foto de perfil"
+  className="w-10 rounded-full aspect-square"
+/>
+</TableCell>
                 <TableCell>{user.identificacion}</TableCell>
                 <TableCell>
                   {user.primerNombre} {user.segundoNombre ?? ""}{" "}

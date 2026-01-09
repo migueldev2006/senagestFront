@@ -7,8 +7,17 @@ import { es } from 'date-fns/locale';
 import { Pencil } from "lucide-react";
 
 export default function ProfilePage() {
-  const baseURL = import.meta.env.VITE_API_URL;
+const baseURL = import.meta.env.VITE_API_URL.endsWith("/")
+  ? import.meta.env.VITE_API_URL
+  : import.meta.env.VITE_API_URL + "/";
+
+
+
   const { profile, isLoading, isError, error, updateProfilePictude } = useProfile();
+
+    console.log("🔍 ProfilePage → baseURL final:", baseURL);
+console.log("🔍 ProfilePage → profile.img:", profile?.img);
+console.log("🔍 ProfilePage → URL completa:", `${baseURL}uploads/${profile?.img}`);
 
   async function handleProfileChange(e: any){
     const file = e.target.files?.[0];
@@ -38,11 +47,12 @@ export default function ProfilePage() {
 
               <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 h-36 rounded-full mx-auto border-2 border-dashed border-gray-500 shadow-lg overflow-hidden">
                 <div className="bg-black group">
-                  <img
-                    src={`${baseURL}uploads/${profile?.img}`}
-                    className="h-36 w-36 transition-all duration-200 group-hover:opacity-80"
-                    alt="pfp"
-                  />
+<img
+  src={`${baseURL}uploads/${profile?.img}`}
+  className="h-36 w-36 transition-all duration-200 group-hover:opacity-80"
+  alt="pfp"
+/>
+
                   <Pencil className="absolute left-1/2 -translate-x-1/2 text-gray-50 top-1/2 -translate-y-1/2 opacity-0 transition-all duration-200 group-hover:opacity-100" size={64}/>
                   <input onChange={handleProfileChange} type="file" accept="image/*" className="h-36 w-36 absolute left-0 top-0 rounded-full hover:cursor-pointer opacity-0"/>
                 </div>
